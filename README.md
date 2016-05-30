@@ -24,7 +24,7 @@ python2.7
 NVIDIA GPU TITAN X for running large models
 
 ## Installation
-* Follow the instructions to install theanomodels
+* Follow the instructions to install theanomodels.
 * Synthetic experiments in expt-synthetic
 * Polyphonic experiments in expt-polyphonic
 
