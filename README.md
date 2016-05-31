@@ -21,7 +21,7 @@ python2.7
 
 [pykalman] (https://pykalman.github.io/)
 
-NVIDIA GPU TITAN X for running large models
+NVIDIA GPU w/ atleast 6G of Memory
 
 ## Installation
 * Follow the instructions to install theanomodels.
