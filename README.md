@@ -19,10 +19,12 @@ python2.7
 
 [theanomodels] (https://github.com/clinicalml/theanomodels)
 
-NVIDIA GPU TITAN X for running models on Musedata
+[pykalman] (https://pykalman.github.io/)
+
+NVIDIA GPU w/ atleast 6G of Memory
 
 ## Installation
-* Follow the instructions to install theanomodels
+* Follow the instructions to install theanomodels.
 * Synthetic experiments in expt-synthetic
 * Polyphonic experiments in expt-polyphonic
 
