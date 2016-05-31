@@ -184,7 +184,8 @@ class DKF(BaseModel, object):
                                     q_W_st_0, q_b_st_0,
                                     q_W_mu, q_b_mu,
                                     q_W_cov,q_b_cov):
-            h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
+            #Workaround: ignore the last dimension (should be 0)
+            h_next     = T.tanh(T.dot(z_prev[:,:-1],q_W_st_0)+q_b_st_0)
             if self.params['var_model']=='LR':
                 h_next = (1./3.)*(h_t+h_next)
             else:
@@ -192,8 +193,12 @@ class DKF(BaseModel, object):
             mu_t         = T.dot(h_next,q_W_mu)+q_b_mu
             cov_t        = T.nnet.softplus(T.dot(h_next,q_W_cov)+q_b_cov)
             z_t          = mu_t+T.sqrt(cov_t)*eps_t
-            return z_t, mu_t, cov_t
+            #Workaround add 0s to last dimension
+            z = T.concatenate([z_t,T.alloc(np.asarray(0.,dtype=config.floatX), z_t.shape[0], 1)],axis=1)
+            z.name = 'z_next'
+            return z, mu_t, cov_t
         
+            
         if self.params['inference_model']=='structured':
             #Structured recognition networks
             if self.params['var_model']=='LR':
@@ -201,18 +206,21 @@ class DKF(BaseModel, object):
             else:
                 state   = hidden_state
             eps_swap= eps.swapaxes(0,1)
+            #Create empty extra dimension
             rval, _ = theano.scan(structuredApproximation, 
                                     sequences=[state, eps_swap],
                                     outputs_info=[
                                     T.alloc(np.asarray(0.,dtype=config.floatX), 
-                                            eps_swap.shape[1], self.params['dim_stochastic']),
+                                            eps_swap.shape[1], self.params['dim_stochastic']+1),
                                             None,None],
                                     non_sequences=[self.tWeights[k] for k in 
                                                    ['q_W_st_0', 'q_b_st_0']]+
                                                   [self.tWeights[k] for k in 
                                                    ['q_W_mu','q_b_mu','q_W_cov','q_b_cov']],
                                     name='structuredApproximation')
-            return rval[0].swapaxes(0,1),rval[1].swapaxes(0,1),rval[2].swapaxes(0,1)
+            z, mu, cov = rval[0].swapaxes(0,1), rval[1].swapaxes(0,1), rval[2].swapaxes(0,1)
+            z = z[:,:,:-1]
+            return z, mu, cov
         elif self.params['inference_model']=='mean_field':
             if self.params['var_model']=='LR':
                 l2r = hidden_state[0].swapaxes(0,1)
