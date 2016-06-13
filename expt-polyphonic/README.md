@@ -1,9 +1,19 @@
 #Implementation of Deep Kalman Filter
-The file dkf_polyphonic.py contains the implementation of both
-inference and generative models for deep kalman filters
+
+Rahul G. Krishnan
+rahul@cs.nyu.edu
+
+The file dkf_polyphonic.py contains the implementation of both inference and generative models for deep kalman filters
+
 
 DKF
+Standard Deep Kalman Filter. The default inference algorithm is set to be ST-R (see paper for more details) although
+this can be modified through a variety of knobs primarily the -inference_model and the -var_model hyperparameters. 
 
 DKF NADE
+Use a nade to model the data rather than a distribution that treats dimensions of the data independantly. (can be used with the -usenade flag)
 
-DKF 
+DKF AUG 
+Augmented DKF. 
+The emission distribution of the generative model is parameterized as p(x_t|x_{t-1}, z_t) (toggled with the -previnp flag)
+and the transition distribution is parameterized as p(zt|z{t-1}) (can be activated with the -etype conditional flag)
