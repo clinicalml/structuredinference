@@ -3,7 +3,8 @@ Structured Inference Networks for Deep Kalman Filters
 
 ## Goal
 The goal is to create a black box algorithm learning algorithm for models of time-series data. 
-The figure describes a generative model with latent variables z1...zT as well as a black-box q(z1,...,zT|x1...xT)
+The figure below describes a simple model of time-series data. The observations x1....xT 
+Latent variables z1...zT as well as a black-box q(z1,...,zT|x1...xT)
 
 ![alt tag](https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDGHzqw3UohY9Kkd-Wj2JXCWCye7cks5XZ4y8wA%3D%3D)
 
