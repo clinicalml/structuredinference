@@ -56,10 +56,30 @@ The main files of interest are:
 
 ## Dataset
 
+The following describes the format of the datasets
+
 ### Format 
-* The datasets within the model
-* Create a file to load datasets into memory (see theanomodels/datasets/load.py for an example of how to load the dataset). This typically involves defining a train/validate split and masks for sequential data
-* Create a training script to use dkf/models.py to create a DKF object to train/evaluate
+
+The code to run on polyphonic and synthetic datasets has already been created in the theanomodels repository. See theanomodels/datasets/load.py for how the dataset is created and loaded. 
+
+The datasets are stored in three dimensional numpy tensors. 
+To deal with datapoints
+of different lengths, we use numpy matrices comprised of binary masks. There may be different choices
+to manipulate data that you may adopt depending on your needs and this is merely a guideline.
+
+
+```
+assert type(dataset) is dict,'Expecting dictionary'
+dataset['train'] # N_train x T_train_max x dim_observation : training data
+dataset['test']  # N_test  x T_test_max  x dim_observation : validation data
+dataset['valid'] # N_valid x T_valid_max x dim_observation : test data
+dataset['mask_train'] # N_train x T_train_max : training masks
+dataset['mask_test']  # N_test  x T_test_max  : validation masks
+dataset['mask_valid'] # N_valid x T_valid_max : test masks
+dataset['data_type'] # real/binary
+dataset['has_masks'] # true/false
+```
+
 
 ### Running on different datasets
 
@@ -73,11 +93,3 @@ The main files of interest are:
   year={2015}
 }
 ```
-
-
-## Installation
-* Follow the instructions to install theanomodels.
-* Synthetic experiments in expt-synthetic
-* Polyphonic experiments in expt-polyphonic
-
-Use the .sh files provided to create and train the models used in order to obtain the reported numbers
