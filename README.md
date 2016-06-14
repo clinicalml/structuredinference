@@ -42,21 +42,16 @@ An NVIDIA GPU w/ atleast 6G of memory is recommended.
 Once the requirements have been met, clone this repository and its ready to run. 
 
 ### Folder Structure
-expt-synthetic, expt-polyphonic: Contains code and instructions for reproducing results. 
+The following folders contain code to reproduct the result:
+* expt-synthetic, expt-polyphonic: Contains code and instructions for reproducing results. 
+* baselines/: Contains to run some of the baseline algorithms on the synthetic data
+* ipynb/: Ipython notebooks for evaluation and building plots
 
-baselines/: Contains to run some of the baseline algorithms on the synthetic data
-
-ipynb/: Ipython notebooks for evaluation and building plots
-
-The two main files of interest are:
-parse_args_dkf.py: Contains the list of arguments that the model expects to be present. Looking through it
-is useful to understand the different knobs available to tune the model. 
-
-stinfmodel/dkf.py: Contains the code to construct the inference and generative model. The code is commented and should be readable.
-
-stinfmodel/evaluate_dkf.py: Contains code to evaluate the Deep Kalman Filter's performance during learning.
-
-stinfmodel/learning.py: Code for performing stochastic gradient ascent in the Evidence Lower Bound. 
+The main files of interest are:
+* parse_args_dkf.py: Contains the list of arguments that the model expects to be present. Looking through it is useful to understand the different knobs available to tune the model. 
+* stinfmodel/dkf.py: Contains the code to construct the inference and generative model. The code is commented and should be readable.
+* stinfmodel/evaluate_dkf.py: Contains code to evaluate the Deep Kalman Filter's performance during learning.
+* stinfmodel/learning.py: Code for performing stochastic gradient ascent in the Evidence Lower Bound. 
 
 
 ## Dataset
@@ -86,7 +81,3 @@ stinfmodel/learning.py: Code for performing stochastic gradient ascent in the Ev
 * Polyphonic experiments in expt-polyphonic
 
 Use the .sh files provided to create and train the models used in order to obtain the reported numbers
-
-## Model configuration
-* The settings in the configuration file reflect the settings used in the paper. To use the code in your own application, 
-you may modify the model parameters to suit your needs. See parse_args_dkf.py for different options on the same. 
