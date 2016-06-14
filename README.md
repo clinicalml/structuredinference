@@ -2,17 +2,28 @@
 Structured Inference Networks for Deep Kalman Filters 
 
 ## Goal
-The goal is to create a black box algorithm learning algorithm for models of time-series data. 
+The goal of this package is to present a black box algorithm inference algorithm to learn models of time-series data. 
+Learning is performed using a recognition network.
+
+## Model
 The figure below describes a simple model of time-series data. The observations x1....xT 
-Latent variables z1...zT as well as a black-box q(z1,...,zT|x1...xT)
 
-![alt tag](https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDGHzqw3UohY9Kkd-Wj2JXCWCye7cks5XZ4y8wA%3D%3D)
+Generative Model: The latent variables z1...zT and the observations x1...xT describe the generative process for the data. The figure depicts a simple state space model for time-varying data. 
 
-## Which inference algorithm should I use?
-The answer to this question almost always is that you should try it. However, (1) if you have enough training data (2)
-if you would like to have a method for fast posterior inference at train and test time and (3) if you're uncertain about the 
+<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDGHzqw3UohY9Kkd-Wj2JXCWCye7cks5XZ4y8wA%3D%3D =20x20 alt="DKF" width="500" height="400"/>
+
+Inference Model: The black-box q(z1..zT|x1...xT) represents the inference network. There are several supported inference networks within this package. See below for details on how to use different ones. 
+
+### I want to learn a model of time series data. Should I use this?
+The success or failure of this method is hard to predict but the hope is that the package is easy enough to work with
+that the decision to use or not may be made quickly. Typically, (1) if you have enough training data (2)
+if you would like to have a method for fast posterior inference at train 
+and test time and (3) if your generative model has gaussian latent variables, this method would be a good fit. 
+
+
 
 ## Implementation
+
 
 ## Dataset
 * The datasets within the model
