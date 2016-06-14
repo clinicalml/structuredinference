@@ -53,10 +53,9 @@ The main files of interest are:
 * stinfmodel/evaluate_dkf.py: Contains code to evaluate the Deep Kalman Filter's performance during learning.
 * stinfmodel/learning.py: Code for performing stochastic gradient ascent in the Evidence Lower Bound. 
 
-
 ## Dataset
 
-The following describes the format of the datasets
+We train the models here using mini-batch gradient descent on -ELBO. 
 
 ### Format 
 
@@ -66,7 +65,6 @@ The datasets are stored in three dimensional numpy tensors.
 To deal with datapoints
 of different lengths, we use numpy matrices comprised of binary masks. There may be different choices
 to manipulate data that you may adopt depending on your needs and this is merely a guideline.
-
 
 ```
 assert type(dataset) is dict,'Expecting dictionary'
@@ -82,6 +80,8 @@ dataset['has_masks'] # true/false
 
 
 ### Running on different datasets
+To run the models on different datasets, create a file to load the dataset into a format that is similar to the above and
+follow the setup in expt-polyphonic/train.py to create the training script. 
 
 
 ## References: 
