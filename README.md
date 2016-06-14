@@ -22,8 +22,8 @@ The code optimizes the variational lower bound.
 
 ## Installation
 
-# Requirements
-This package has the following requirements. 
+### Requirements
+This package has the following requirements:
 
 python2.7
 
@@ -39,12 +39,13 @@ For running baseline UKFs/KFs
 
 An NVIDIA GPU w/ atleast 6G of memory is recommended.
 
-# Setup
 Once the requirements have been met, clone this repository and its ready to run. 
 
-## Folder Structure
+### Folder Structure
 expt-synthetic, expt-polyphonic: Contains code and instructions for reproducing results. 
+
 baselines/: Contains to run some of the baseline algorithms on the synthetic data
+
 ipynb/: Ipython notebooks for evaluation and building plots
 
 The two main files of interest are:
@@ -52,20 +53,20 @@ parse_args_dkf.py: Contains the list of arguments that the model expects to be p
 is useful to understand the different knobs available to tune the model. 
 
 stinfmodel/dkf.py: Contains the code to construct the inference and generative model. The code is commented and should be readable.
+
 stinfmodel/evaluate_dkf.py: Contains code to evaluate the Deep Kalman Filter's performance during learning.
+
 stinfmodel/learning.py: Code for performing stochastic gradient ascent in the Evidence Lower Bound. 
-
-
 
 
 ## Dataset
 
-# Format 
+### Format 
 * The datasets within the model
 * Create a file to load datasets into memory (see theanomodels/datasets/load.py for an example of how to load the dataset). This typically involves defining a train/validate split and masks for sequential data
 * Create a training script to use dkf/models.py to create a DKF object to train/evaluate
 
-# Instructions for running on my own data
+### Running on different datasets
 
 
 ## References: 
