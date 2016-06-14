@@ -57,7 +57,7 @@ The main files of interest are:
 
 ## Dataset
 
-We train the models here using mini-batch gradient descent on -ELBO. 
+We use numpy tensors to store the datasets with binary numpy masks to allow batch sizes comprising sequences of variable length. We train the models using mini-batch gradient descent on -ELBO. 
 
 ### Format 
 
@@ -80,6 +80,7 @@ dataset['data_type'] # real/binary
 dataset['has_masks'] # true/false
 ```
 
+During learning, we select a subset of these tensors to update the weights of the model.
 
 ### Running on different datasets
 To run the models on different datasets, create a file to load the dataset into a format that is similar to the above and
