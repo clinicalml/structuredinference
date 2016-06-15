@@ -9,12 +9,14 @@ Learning is performed using a recognition network.
 The figure below describes a simple model of time-series data.
 Typically, (1) if you have enough training data (2)
 if you would like to have a method for fast posterior inference at train 
-and test time and (3) if your generative model has gaussian latent variables, this method would be a good fit
+and test time and (3) if your generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables), this method would be a good fit
 to learn your model. 
 
-<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D =20x20 alt="DKF" width="500" height="400"/>
+<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D alt="DKF" width="500" height="400"/>
 
-The code optimizes the variational lower bound.
+The code learns the model by optimizing the variational lower bound.
+
+<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/ELBO.png?token=AA5BDM8-tMTqh4OCy8W9R87zIFgc3Jwbks5XaNJJwA%3D%3D alt="ELBO" width="500" height="70"/>
 
 *Generative Model* The latent variables z1...zT and the observations x1...xT describe the generative process for the data. The figure depicts a simple state space model for time-varying data. 
 
@@ -39,10 +41,10 @@ For running baseline UKFs/KFs
 
 An NVIDIA GPU w/ atleast 6G of memory is recommended.
 
-Once the requirements have been met, clone this repository and its ready to run. 
+Once the requirements have been met, clone this repository and it's ready to run. 
 
 ### Folder Structure
-The following folders contain code to reproduct the result:
+The following folders contain code to reproduct the results reported in our paper:
 * expt-synthetic, expt-polyphonic: Contains code and instructions for reproducing results. 
 * baselines/: Contains to run some of the baseline algorithms on the synthetic data
 * ipynb/: Ipython notebooks for evaluation and building plots
@@ -55,7 +57,7 @@ The main files of interest are:
 
 ## Dataset
 
-We train the models here using mini-batch gradient descent on -ELBO. 
+We use numpy tensors to store the datasets with binary numpy masks to allow batch sizes comprising sequences of variable length. We train the models using mini-batch gradient descent on -ELBO. 
 
 ### Format 
 
@@ -78,6 +80,7 @@ dataset['data_type'] # real/binary
 dataset['has_masks'] # true/false
 ```
 
+During learning, we select a subset of these tensors to update the weights of the model.
 
 ### Running on different datasets
 To run the models on different datasets, create a file to load the dataset into a format that is similar to the above and
