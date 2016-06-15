@@ -12,7 +12,7 @@ if you would like to have a method for fast posterior inference at train
 and test time and (3) if your generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables), this method would be a good fit
 to learn your model. 
 
-<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D alt="DKF" width="500" height="400"/>
+<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D alt="DKF" width="500" height="300"/>
 
 The code learns the model by optimizing the variational lower bound.
 
