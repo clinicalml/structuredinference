@@ -9,7 +9,7 @@ Learning is performed using a recognition network.
 The figure below describes a simple model of time-series data.
 Typically, (1) if you have enough training data (2)
 if you would like to have a method for fast posterior inference at train 
-and test time and (3) if your generative model has gaussian latent variables, this method would be a good fit
+and test time and (3) if your generative model has Gaussian latent variables (can be a nonlinear function of previous timestep's variables), this method would be a good fit
 to learn your model. 
 
 <img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D alt="DKF" width="500" height="400"/>
