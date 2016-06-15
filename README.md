@@ -37,7 +37,7 @@ Wrapper around theano that takes care of bookkeeping, saving/loading models etc.
 and add it to your PATH environment variable so that it is accessible by this package. 
 
 [pykalman] (https://pykalman.github.io/) 
-For running baseline UKFs/KFs
+[Optional: For running baseline UKFs/KFs]
 
 An NVIDIA GPU w/ atleast 6G of memory is recommended.
 
