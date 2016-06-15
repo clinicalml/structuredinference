@@ -41,10 +41,10 @@ For running baseline UKFs/KFs
 
 An NVIDIA GPU w/ atleast 6G of memory is recommended.
 
-Once the requirements have been met, clone this repository and its ready to run. 
+Once the requirements have been met, clone this repository and it's ready to run. 
 
 ### Folder Structure
-The following folders contain code to reproduct the result:
+The following folders contain code to reproduct the results reported in our paper:
 * expt-synthetic, expt-polyphonic: Contains code and instructions for reproducing results. 
 * baselines/: Contains to run some of the baseline algorithms on the synthetic data
 * ipynb/: Ipython notebooks for evaluation and building plots
