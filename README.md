@@ -12,7 +12,7 @@ if you would like to have a method for fast posterior inference at train
 and test time and (3) if your generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables), this method would be a good fit
 to learn your model. 
 
-<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D alt="DKF" width="500" height="400"/>
+<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D alt="DKF" width="500" height="300"/>
 
 The code learns the model by optimizing the variational lower bound.
 
@@ -37,7 +37,7 @@ Wrapper around theano that takes care of bookkeeping, saving/loading models etc.
 and add it to your PATH environment variable so that it is accessible by this package. 
 
 [pykalman] (https://pykalman.github.io/) 
-For running baseline UKFs/KFs
+[Optional: For running baseline UKFs/KFs]
 
 An NVIDIA GPU w/ atleast 6G of memory is recommended.
 
@@ -52,7 +52,7 @@ The following folders contain code to reproduct the results reported in our pape
 The main files of interest are:
 * parse_args_dkf.py: Contains the list of arguments that the model expects to be present. Looking through it is useful to understand the different knobs available to tune the model. 
 * stinfmodel/dkf.py: Contains the code to construct the inference and generative model. The code is commented and should be readable.
-* stinfmodel/evaluate_dkf.py: Contains code to evaluate the Deep Kalman Filter's performance during learning.
+* stinfmodel/evaluate.py: Contains code to evaluate the Deep Kalman Filter's performance during learning.
 * stinfmodel/learning.py: Code for performing stochastic gradient ascent in the Evidence Lower Bound. 
 
 ## Dataset
@@ -80,12 +80,14 @@ dataset['data_type'] # real/binary
 dataset['has_masks'] # true/false
 ```
 
-During learning, we select a subset of these tensors to update the weights of the model.
+During learning, we select a minibatch of these tensors to update the weights of the model. 
+
 
 ### Running on different datasets
 To run the models on different datasets, create a file to load the dataset into a format that is similar to the above and
 follow the setup in expt-polyphonic/train.py to create the training script. 
 
+**See the folder expt-template for an example of how to create and run the code on your data**
 
 ## References: 
 ```
