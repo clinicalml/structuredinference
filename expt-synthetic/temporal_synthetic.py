@@ -45,12 +45,8 @@ class DKF(BaseModel, object):
         mask[small] = 0.
         mask[large]= 1.
         eps  = np.random.randn(N,T,self.params['dim_stochastic']).astype(config.floatX)
-        U = None
-        if self.params['dim_actions']>0:
-            U= np.random.random((N,T,self.params['dim_actions'])).astype(config.floatX)
-        
         X    = np.random.randn(N,T,self.params['dim_observations']).astype(config.floatX)
-        return X ,mask, eps, U
+        return X ,mask, eps
     
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#
     def _createParams(self):
@@ -151,10 +147,10 @@ class DKF(BaseModel, object):
             logcov.name = 'EmissionLogCov'
             return [mu,logcov]
     
-    def _getTransitionFxn(self, z, u=None, fixedLogCov = None):
+    def _getTransitionFxn(self, z, fixedLogCov = None):
         """
         Apply transition function to zs
-        Input:  z [bs x T x dim], u<if actions present in model> [bs x T x dim]
+        Input:  z [bs x T x dim],[bs x T x dim]
         Output: mu, logsigmasq of size [bs x T x dim]
         """
         if 'synthetic' in self.params['dataset']:
@@ -431,12 +427,7 @@ class DKF(BaseModel, object):
         X      = T.tensor3('X',   dtype=config.floatX)
         eps    = T.tensor3('eps', dtype=config.floatX)
         M      = T.matrix('M', dtype=config.floatX)
-        U      = None
-        if self.params['dim_actions']>0:
-            U  = T.tensor3('U',   dtype=config.floatX)
-        X.tag.test_value, M.tag.test_value, eps.tag.test_value, u_tag   = self._fakeData()
-        if U is not None:
-            U.tag.test_value = u_tag
+        X.tag.test_value, M.tag.test_value, eps.tag.test_value   = self._fakeData()
         
         #Learning Rates and annealing objective function
         #Add them to npWeights/tWeights to be tracked [do not have a prefix _W or _b so wont be diff.]
@@ -547,9 +538,7 @@ class DKF(BaseModel, object):
     """
                                       Sample from Generative Model
     """
-    def sample(self, nsamples=100, T=10, U= None):
-        if self.params['dim_actions']>0:
-            assert U is not None,'Specify U for sampling model conditioned on actions'
+    def sample(self, nsamples=100, T=10):
         assert T>1, 'Sample atleast 2 timesteps'
         #Initial sample
         z      = np.random.randn(nsamples,1,self.params['dim_stochastic']).astype(config.floatX)
@@ -571,7 +560,7 @@ class DKF(BaseModel, object):
         return self.posterior_inference(X=dataset.astype(config.floatX), eps=eps)
     
     
-    def evaluateBound(self, dataset, mask, batch_size, actions=None, S=5, normalization = 'frame', additional={}):
+    def evaluateBound(self, dataset, mask, batch_size,  S=5, normalization = 'frame', additional={}):
         """
                                         Evaluate bound on dataset
         """
@@ -591,17 +580,12 @@ class DKF(BaseModel, object):
             X       = X[:,:maxT,:]
             M       = M[:,:maxT]
             eps     = np.random.randn(X.shape[0],maxT,self.params['dim_stochastic']).astype(config.floatX)
-            if actions is not None:
-                U   = actions[st_idx:end_idx,:maxT,:].astype(config.floatX)
             
             maxS = S
             bound_sum, tsbn_bound_sum = 0, 0
             for s in range(S):
                 eps     = np.random.randn(X.shape[0],maxT,self.params['dim_stochastic']).astype(config.floatX)
-                if actions is not None:
-                    batch_vec= self.evaluate(X=X, M=M, eps=eps, U=U)
-                else:
-                    batch_vec= self.evaluate(X=X, M=M, eps=eps)
+                batch_vec= self.evaluate(X=X, M=M, eps=eps)
                 if np.any(np.isnan(batch_vec)) or np.any(np.isinf(batch_vec)):
                     self._p('NaN detected during evaluation. Ignoring this sample')
                     maxS -=1
@@ -623,10 +607,10 @@ class DKF(BaseModel, object):
         additional['tsbn_bound'] = tsbn_bound
         return bound
     
-    def learn(self, dataset, mask, actions = None, epoch_start=0, epoch_end=1000, 
+    def learn(self, dataset, mask, epoch_start=0, epoch_end=1000, 
               batch_size=200, shuffle=False,
               savefreq=None, savefile = None, 
-              dataset_eval = None, mask_eval = None, actions_eval = None,
+              dataset_eval = None, mask_eval = None,
               replicate_K = None,
               normalization = 'frame'):
         """
@@ -675,12 +659,7 @@ class DKF(BaseModel, object):
                         U = np.tile(U,(replicate_K, 1, 1))
                 
                 eps     = np.random.randn(X.shape[0],maxT,self.params['dim_stochastic']).astype(config.floatX)
-                
-                if actions is not None:
-                    U   = actions[idxlist[st_idx:end_idx],:maxT,:].astype(config.floatX)
-                    batch_bound = self.train(X=X, M=M, eps=eps, U=U)
-                else:
-                    batch_bound, p_norm, g_norm, opt_norm, negCLL, KL, anneal = self.train_debug(X=X, M=M, eps=eps)
+                batch_bound, p_norm, g_norm, opt_norm, negCLL, KL, anneal = self.train_debug(X=X, M=M, eps=eps)
                 
                 #Number of frames
                 M_sum = M.sum()
@@ -727,12 +706,11 @@ class DKF(BaseModel, object):
                     tmpMap = {}
                     #Track the validation bound and the TSBN bound
                     bound_valid_list.append(
-                        (epoch,self.evaluateBound(dataset_eval, mask_eval, 
-                                                  actions=actions_eval, batch_size=batch_size, 
+                        (epoch,self.evaluateBound(dataset_eval, mask_eval, batch_size=batch_size, 
                                                   additional = tmpMap, normalization=normalization)))
                     bound_tsbn_list.append((epoch, tmpMap['tsbn_bound']))
-                    nll_valid_list.append(self.impSamplingNLL(dataset_eval, mask_eval, batch_size, 
-                                                              actions=actions_eval, normalization=normalization))
+                    nll_valid_list.append(self.impSamplingNLL(dataset_eval, mask_eval, batch_size,
+                                                              normalization=normalization))
                     
                     if 'synthetic' in self.params['dataset']:
                         mu_train, cov_train, mu_valid, cov_valid = self._syntheticProc(dataset, dataset_eval)
@@ -763,7 +741,7 @@ class DKF(BaseModel, object):
             retMap['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
         return retMap
     
-    def impSamplingNLL(self, dataset, mask, batch_size, actions=None, S = 5, normalization = 'frame'):
+    def impSamplingNLL(self, dataset, mask, batch_size, S = 5, normalization = 'frame'):
         """
                                     Importance sampling based log likelihood
         """
@@ -781,16 +759,11 @@ class DKF(BaseModel, object):
             X       = X[:,:maxT,:]
             M       = M[:,:maxT]
             eps     = np.random.randn(X.shape[0],maxT,self.params['dim_stochastic']).astype(config.floatX)
-            if actions is not None:
-                U   = actions[st_idx:end_idx,:maxT,:].astype(config.floatX)
             maxS = S
             lllist = []
             for s in range(S):
                 eps     = np.random.randn(X.shape[0],maxT,self.params['dim_stochastic']).astype(config.floatX)
-                if U is not None:
-                    batch_vec = self.likelihood(X=X, M=M, eps=eps, U=U)
-                else:
-                    batch_vec = self.likelihood(X=X, M=M, eps=eps)
+                batch_vec = self.likelihood(X=X, M=M, eps=eps)
                 if np.any(np.isnan(batch_vec)) or np.any(np.isinf(batch_vec)):
                     self._p('NaN detected during evaluation. Ignoring this sample')
                     maxS -=1
@@ -804,7 +777,7 @@ class DKF(BaseModel, object):
             ll /= float(N)
         else:
             assert False,'Invalid normalization specified'
-            
+        
         end_time   = time.time()
         self._p(('(Evaluate w/ Imp. Sampling) Validation LL: %.4f [Took %.4f seconds]')%(ll,end_time-start_time))
         return ll
