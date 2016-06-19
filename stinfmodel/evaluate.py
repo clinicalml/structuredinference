@@ -13,7 +13,7 @@ def infer(dkf, dataset):
     eps  = np.random.randn(dataset.shape[0], dataset.shape[1], dkf.params['dim_stochastic']).astype(config.floatX)
     return dkf.posterior_inference(X=dataset.astype(config.floatX), eps=eps)
 
-def evaluateBound(dkf, dataset, mask, batch_size, actions=None, S=2, normalization = 'frame', additional={}):
+def evaluateBound(dkf, dataset, mask, batch_size,S=2, normalization = 'frame', additional={}):
     """
                                     Evaluate bound on dataset
     """
@@ -33,19 +33,13 @@ def evaluateBound(dkf, dataset, mask, batch_size, actions=None, S=2, normalizati
         X       = X[:,:maxT,:]
         M       = M[:,:maxT]
         eps     = np.random.randn(X.shape[0],maxT,dkf.params['dim_stochastic']).astype(config.floatX)
-        if actions is not None:
-            U   = actions[st_idx:end_idx,:maxT,:].astype(config.floatX)
-        
         maxS = S
         bound_sum, tsbn_bound_sum = 0, 0
         for s in range(S):
             if s%500==0:
                 dkf._p('Done '+str(s))
             eps     = np.random.randn(X.shape[0],maxT,dkf.params['dim_stochastic']).astype(config.floatX)
-            if actions is not None:
-                batch_vec= dkf.evaluate(X=X, M=M, eps=eps, U=U)
-            else:
-                batch_vec= dkf.evaluate(X=X, M=M, eps=eps)
+            batch_vec= dkf.evaluate(X=X, M=M, eps=eps)
             if np.any(np.isnan(batch_vec)) or np.any(np.isinf(batch_vec)):
                 dkf._p('NaN detected during evaluation. Ignoring this sample')
                 maxS -=1
@@ -70,7 +64,7 @@ def evaluateBound(dkf, dataset, mask, batch_size, actions=None, S=2, normalizati
 
 
     
-def impSamplingNLL(dkf, dataset, mask, batch_size, actions=None, S = 2, normalization = 'frame'):
+def impSamplingNLL(dkf, dataset, mask, batch_size, S = 2, normalization = 'frame'):
     """
                                 Importance sampling based log likelihood
     """
@@ -88,18 +82,13 @@ def impSamplingNLL(dkf, dataset, mask, batch_size, actions=None, S = 2, normaliz
         X       = X[:,:maxT,:]
         M       = M[:,:maxT]
         eps     = np.random.randn(X.shape[0],maxT,dkf.params['dim_stochastic']).astype(config.floatX)
-        if actions is not None:
-            U   = actions[st_idx:end_idx,:maxT,:].astype(config.floatX)
         maxS = S
         lllist = []
         for s in range(S):
             if s%500==0:
                 dkf._p('Done '+str(s))
-            eps     = np.random.randn(X.shape[0],maxT,dkf.params['dim_stochastic']).astype(config.floatX)
-            if U is not None:
-                batch_vec = dkf.likelihood(X=X, M=M, eps=eps, U=U)
-            else:
-                batch_vec = dkf.likelihood(X=X, M=M, eps=eps)
+            eps      = np.random.randn(X.shape[0],maxT,dkf.params['dim_stochastic']).astype(config.floatX)
+            atch_vec = dkf.likelihood(X=X, M=M, eps=eps)
             if np.any(np.isnan(batch_vec)) or np.any(np.isinf(batch_vec)):
                 dkf._p('NaN detected during evaluation. Ignoring this sample')
                 maxS -=1
@@ -122,12 +111,10 @@ def impSamplingNLL(dkf, dataset, mask, batch_size, actions=None, S = 2, normaliz
 def sampleGaussian(dkf,mu,logsigmasq):
         return mu + np.random.randn(*mu.shape)*np.exp(0.5*logsigmasq)
 
-def sample(dkf, nsamples=100, T=10, U= None, additional = {}):
+def sample(dkf, nsamples=100, T=10, additional = {}):
     """
                                   Sample from Generative Model
     """
-    if dkf.params['dim_actions']>0:
-        assert U is not None,'Specify U for sampling model conditioned on actions'
     assert T>1, 'Sample atleast 2 timesteps'
     #Initial sample
     z      = np.random.randn(nsamples,1,dkf.params['dim_stochastic']).astype(config.floatX)

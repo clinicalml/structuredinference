@@ -43,17 +43,13 @@ class DKF(BaseModel, object):
         mask[small] = 0.
         mask[large]= 1.
         eps  = np.random.randn(N,T,self.params['dim_stochastic']).astype(config.floatX)
-        U = None
-        if self.params['dim_actions']>0:
-            U= np.random.random((N,T,self.params['dim_actions'])).astype(config.floatX)
-        
         X    = np.random.randn(N,T,self.params['dim_observations']).astype(config.floatX)
-        return X ,mask, eps, U
+        return X ,mask, eps
     
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#
     def _createParams(self):
         """
-                                    Create parameters necessary for the model
+                                    Model parameters
         """
         npWeights = OrderedDict()
         self._createInferenceParams(npWeights)
@@ -64,10 +60,8 @@ class DKF(BaseModel, object):
         """
                                     Create weights/params for generative model
         """
-        #Transition Emission
         DIM_HIDDEN = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
-        
         if self.params['transition_type']=='mlp':
             DIM_HIDDEN_TRANS = DIM_HIDDEN*2
             for l in range(self.params['transition_layers']):
@@ -104,6 +98,7 @@ class DKF(BaseModel, object):
         if self.params['transition_type']=='simple_gated':
             weight= np.eye(self.params['dim_stochastic']).astype(config.floatX)
             bias  = np.zeros((self.params['dim_stochastic'],)).astype(config.floatX)
+            #Initialize the weights to be identity
             npWeights['p_trans_W_mu'] = weight
             npWeights['p_trans_b_mu'] = bias
         else:
@@ -111,7 +106,6 @@ class DKF(BaseModel, object):
             npWeights['p_trans_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
         npWeights['p_trans_W_cov'] = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_cov'] = self._getWeight((self.params['dim_stochastic'],))
-        
         
         #Emission Function [MLP]
         if self.params['emission_type'] == 'mlp':
@@ -128,13 +122,6 @@ class DKF(BaseModel, object):
                     dim_input = self.params['dim_stochastic']+self.params['dim_observations']
                 npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
                 npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
-        elif self.params['emission_type'] =='conditional_linear':
-            dim_input,dim_output = self.params['dim_stochastic'], self.params['dim_observations']
-            npWeights['p_emis_W_0'] = self._getWeight((dim_input, dim_output))
-            npWeights['p_emis_b_0'] = self._getWeight((dim_output,))
-            dim_input = self.params['dim_observations']
-            npWeights['p_inp_W'] = self._getWeight((dim_input, dim_input))
-            npWeights['p_inp_b'] = self._getWeight((dim_input,))
         else:
             assert False, 'Invalid emission type: '+str(self.params['emission_type'])
         
@@ -156,6 +143,7 @@ class DKF(BaseModel, object):
         #Initial embedding for the inputs
         DIM_INPUT  = self.params['dim_observations']
         RNN_SIZE   = self.params['rnn_size']
+        
         DIM_HIDDEN = RNN_SIZE
         DIM_STOC   = self.params['dim_stochastic']
         
@@ -167,9 +155,9 @@ class DKF(BaseModel, object):
         #Setup weights for LSTM
         self._createLSTMWeights(npWeights)
         
-        #Embedding before MF/ST
+        #Embedding before MF/ST inference model
         if self.params['inference_model']=='mean_field':
-            pass       
+            pass 
         elif self.params['inference_model']=='structured':
             npWeights['q_W_st_0'] = self._getWeight((self.params['dim_stochastic'], self.params['rnn_size']))
             npWeights['q_b_st_0'] = self._getWeight((self.params['rnn_size'],))
@@ -207,76 +195,81 @@ class DKF(BaseModel, object):
         Input:  z [bs x T x dim]
         Output: (params, ) or (mu, cov) of size [bs x T x dim]
         """
-        
         if self.params['emission_type']=='mlp':
             self._p('EMISSION TYPE: MLP')
             hid = z
-            for l in range(self.params['emission_layers']):
-                hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)], self.tWeights['p_emis_b_'+str(l)], hid)
         elif self.params['emission_type']=='conditional':
             self._p('EMISSION TYPE: conditional')
             X_prev  = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
-            hid= T.concatenate([z,X_prev],axis=2)
-            for l in range(self.params['emission_layers']):
-                hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)], self.tWeights['p_emis_b_'+str(l)], hid)
-        elif self.params['emission_type']=='conditional_linear':
-            self._p('EMISSION TYPE: Linear')
-            X_prev  = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
-            hid_z   = T.dot(z, self.tWeights['p_emis_W_0'])+self.tWeights['p_emis_b_0']
-            hid_x   = T.dot(X_prev, self.tWeights['p_inp_W'])+ self.tWeights['p_inp_b']
-            return [T.nnet.sigmoid(hid_z+hid_x)]
+            hid     = T.concatenate([z,X_prev],axis=2)
         else:
             assert False,'Invalid emission type'
-    
+        
+        self._p('TODO: FIX THIS, SHOULD BE LINEAR FOR NADE')
+        for l in range(self.params['emission_layers']):
+            hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)], 
+                                 self.tWeights['p_emis_b_'+str(l)], hid)
         if self.params['data_type']=='binary':
-            mean_params=T.nnet.sigmoid(self._LinearNL(self.tWeights['p_emis_W_ber'],
-                                      self.tWeights['p_emis_b_ber'],hid,onlyLinear=True))
+            mean_params=T.nnet.sigmoid(T.dot(hid,self._LinearNL(self.tWeights['p_emis_W_ber'])+
+                                             self.tWeights['p_emis_b_ber'])
             return [mean_params]
         elif self.params['data_type']=='binary_nade':
             self._p('NADE observations')
             assert X is not None,'Need observations for NADE'
-            #Shuffle the dimensions of the predicted matrix
             x_reshaped   = X.dimshuffle(2,0,1)
             x0 = T.ones_like(x_reshaped[0]) # bs x T
-            a0 = hid #bs x T x nstoc (condition on stoc. states)
-            nl= T.nnet.relu
+            a0 = hid #bs x T x nhid
             W = self.tWeights['p_nade_W']
             V = self.tWeights['p_nade_U']
             b = self.tWeights['p_nade_b']
             #Use a NADE at the output
-            def NADEDensity(x, w, v, b,a_prev, x_prev):#, #Estimating likelihood
+            """
+            def NADEDensity(x, w, v, b,a_prev, x_prev):#Estimating likelihood
                 a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
                 h   = T.nnet.sigmoid(a) #bs x T x nhid
                 p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
                 return (a, x, p_xi_is_one)
-            ([_, _, mean_params], _) = theano.scan(NADEDensity,
+            ([_, _, mean_params,sampled_params], _) = theano.scan(NADEDensity,
                                                    sequences=[x_reshaped, W, V, b],
-                                                   outputs_info=[a0, x0, None])
-            mean_params = mean_params.dimshuffle(1,2,0)
-            return [mean_params]
+                                                   outputs_info=[a0, x0,None])
+            """
+             def NADEDensityAndSample(x, w, v, b, a_prev, x_prev ):
+                a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
+                h   = T.nnet.sigmoid(a) #bs x T x nhid
+                p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
+                
+                a_s   = a_prev_s + T.dot(T.shape_padright(x_prev_s, 1), T.shape_padleft(w, 1))
+                h_s   = T.nnet.sigmoid(a_s) #bs x T x nhid
+                p_xi_is_one_s = T.nnet.sigmoid(T.dot(h_s, v) + b)
+                x_s   = T.switch(p_xi_is_one_s>0.5,1,0)
+                return (a, x, x_s, p_xi_is_one,p_xi_is_one_s)
+            ([_, _, _, _, mean_params,sampled_params], _) = theano.scan(NADEDensity,
+                                                   sequences=[x_reshaped, W, V, b],
+                                                   outputs_info=[a0, x0, x0,None ,None])
+            sampled_params = sampled_params.dimshuffle(1,2,0)
+            mean_params    = mean_params.dimshuffle(1,2,0)
+            return [mean_params,sampled_params]
         else:
             assert False,'Invalid type of data'
     
-    def _getTransitionFxn(self, z, u=None, X=None, fixedLogCov = None):
+    def _getTransitionFxn(self, z, X=None, fixedLogCov = None):
         """
         Apply transition function to zs
         Input:  z [bs x T x dim], u<if actions present in model> [bs x T x dim]
         Output: mu, cov of size [bs x T x dim]
         """
-        
-        
         if self.params['transition_type']=='simple_gated':
-            def mlp(inp, W1,b1,W2,b2,X_prev=None,W_prev=None,b_prev=None):
+            def mlp(inp, W1,b1,W2,b2, X_prev=None, W_prev=None, b_prev=None):
                 if X_prev is not None:
                     h1 = self._LinearNL(W1,b1, T.concatenate([inp,X_prev],axis=2))
                 else:
                     h1 = self._LinearNL(W1,b1, inp)
                 h2 = T.dot(h1,W2)+b2
                 return h2
+            
             gateInp= z
             X_prev,W_prev,b_prev = None,None,None
             if self.params['use_prev_input']:
-                #Concatenate Inputs: [-1] [0] [1] [2] ... [T-1]
                 X_prev = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
             gate   = T.nnet.sigmoid(mlp(gateInp, self.tWeights['p_gate_embed_W_0'], self.tWeights['p_gate_embed_b_0'], 
                                         self.tWeights['p_gate_embed_W_1'],self.tWeights['p_gate_embed_b_1'],
@@ -291,17 +284,13 @@ class DKF(BaseModel, object):
             return mu,cov
         elif self.params['transition_type']=='mlp':
             hid = z
+            if self.params['use_prev_input']:
+                X_prev = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
+                hid    = T.concatenate([hid,X_prev],axis=2)
             for l in range(self.params['transition_layers']):
-                if l==0 and self.params['use_prev_input']:
-                    X_prev = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
-                    hid    = T.concatenate([hid,X_prev],axis=2)
-                hid = self._LinearNL(self.tWeights['p_trans_W_'+str(l)],
-                                     self.tWeights['p_trans_b_'+str(l)],
-                                     hid)
-            mu     = self._LinearNL(self.tWeights['p_trans_W_mu'],
-                                      self.tWeights['p_trans_b_mu'],hid,onlyLinear=True)
-            cov    = T.nnet.softplus(T.dot(hid, self.tWeights['p_trans_W_cov'])+
-                                     self.tWeights['p_trans_b_cov'])
+                hid = self._LinearNL(self.tWeights['p_trans_W_'+str(l)],self.tWeights['p_trans_b_'+str(l)],hid)
+            mu     = T.dot(hid, self.tWeights['p_trans_W_mu']) + self.tWeights['p_trans_b_mu']
+            cov    = T.nnet.softplus(T.dot(hid, self.tWeights['p_trans_W_cov'])+self.tWeights['p_trans_b_cov'])
             return mu,cov
         else:
             assert False,'Invalid Transition type: '+str(self.params['transition_type'])
@@ -383,10 +372,12 @@ class DKF(BaseModel, object):
                 r2l = hidden_state[1].swapaxes(0,1)
                 hidl2r = l2r
                 mu_1     = T.dot(hidl2r,self.tWeights['q_W_mu'])+self.tWeights['q_b_mu']
-                cov_1    = T.nnet.softplus(T.dot(hidl2r,self.tWeights['q_W_cov'])+self.tWeights['q_b_cov'])
+                cov_1    = T.nnet.softplus(T.dot(hidl2r,
+                                                 self.tWeights['q_W_cov'])+self.tWeights['q_b_cov'])
                 hidr2l = r2l
                 mu_2     = T.dot(hidr2l,self.tWeights['q_W_mu_r'])+self.tWeights['q_b_mu_r']
-                cov_2    = T.nnet.softplus(T.dot(hidr2l,self.tWeights['q_W_cov_r'])+self.tWeights['q_b_cov_r'])
+                cov_2    = T.nnet.softplus(T.dot(hidr2l,
+                                                 self.tWeights['q_W_cov_r'])+self.tWeights['q_b_cov_r'])
                 mu = (mu_1*cov_2+mu_2*cov_1)/(cov_1+cov_2)
                 cov= (cov_1*cov_2)/(cov_1+cov_2)
                 z = mu + T.sqrt(cov)*eps
@@ -415,7 +406,7 @@ class DKF(BaseModel, object):
         hidden_state      = self._buildLSTM(X, embedding, dropout_prob)
         z_q,mu_q,cov_q    = self._inferenceLayer(hidden_state, eps)
         
-        #Regularize z_q (for train) - Added back in May 16
+        #Regularize z_q (for train) 
         if dropout_prob>0.:
             z_q  = z_q + self.srng.normal(z_q.shape, 0.,0.0025,dtype=config.floatX)
         z_q.name          = 'z_q'
@@ -434,7 +425,6 @@ class DKF(BaseModel, object):
     def _getTemporalKL(self, mu_q, cov_q, mu_prior, cov_prior, M, batchVector = False):
         """
         TemporalKL divergence KL (q||p)
-        
         KL(q_t||p_t) = 0.5*(log|sigmasq_p| -log|sigmasq_q|  -D + Tr(sigmasq_p^-1 sigmasq_q) 
                         + (mu_p-mu_q)^T sigmasq_p^-1 (mu_p-mu_q))
         M is a mask of size bs x T that should be applied once the KL divergence for each point
@@ -456,11 +446,6 @@ class DKF(BaseModel, object):
         M: mask of size bs x T
         X: target of size bs x T x dim
         """
-        #If its a NADE, then we would have computed the mean probs
-        if self.params['emission_type']=='nade':
-            #we would have gotten the hidden state and not the mean parameters. compute here
-            assert False,'Not implemented'
-        
         assert self.params['data_type']=='binary' or self.params['data_type']=='binary_nade','binary only'
         mean_p = obs_params[0]
         negCLL = (T.nnet.binary_crossentropy(mean_p,X).sum(2)*M).sum(1,keepdims=True)
@@ -469,7 +454,6 @@ class DKF(BaseModel, object):
         else:
             return negCLL.sum()
         
-    
     def _buildModel(self):
         """
         High level function to build and setup theano functions
@@ -477,10 +461,7 @@ class DKF(BaseModel, object):
         X      = T.tensor3('X',   dtype=config.floatX)
         eps    = T.tensor3('eps', dtype=config.floatX)
         M      = T.matrix('M', dtype=config.floatX)
-        U = None
-        X.tag.test_value, M.tag.test_value, eps.tag.test_value, u_tag   = self._fakeData()
-        if U is not None:
-            U.tag.test_value = u_tag
+        X.tag.test_value, M.tag.test_value, eps.tag.test_value   = self._fakeData()
         
         #Learning Rates and annealing objective function
         #Add them to npWeights/tWeights to be tracked [do not have a prefix _W or _b so wont be diff.]
@@ -503,9 +484,6 @@ class DKF(BaseModel, object):
                           (anneal,T.switch(0.01+iteration_t/anneal_div>1,1,0.01+iteration_t/anneal_div))]
         
         fxn_inputs = [X, M, eps]
-        if U is not None:
-            fxn_inputs.append(U)
-        assert U is None,'Will not work with U'
         if not self.params['validate_only']:
             print '****** CREATING TRAINING FUNCTION*****'
             ############# Setup training functions ###########
@@ -539,18 +517,14 @@ class DKF(BaseModel, object):
                                                           X, eps, U= U,
                                                           dropout_prob = 0.)
         eval_z_q.name = 'eval_z_q'
-        
         eval_CNLLvec=self._getNegCLL(eval_obs_params, X, M, batchVector = True)
-        eval_KLvec  = self._getTemporalKL(eval_mu_q, eval_cov_q,eval_mu_prior, 
-                                          eval_cov_prior, M, batchVector = True)
+        eval_KLvec  = self._getTemporalKL(eval_mu_q, eval_cov_q,eval_mu_prior, eval_cov_prior, M, batchVector = True)
         eval_cost   = eval_CNLLvec + eval_KLvec
         
         #From here on, convert to the log covariance since we only use it for evaluation
         assert np.all(eval_cov_q.tag.test_value>0.),'should be positive'
         assert np.all(eval_cov_prior.tag.test_value>0.),'should be positive'
         assert np.all(eval_cov_trans.tag.test_value>0.),'should be positive'
-        
-        #convert to log domain - easier to work with
         eval_logcov_q     = T.log(eval_cov_q)
         eval_logcov_prior = T.log(eval_cov_prior)
         eval_logcov_trans = T.log(eval_cov_trans)
@@ -560,9 +534,6 @@ class DKF(BaseModel, object):
         ll_estimate  = -1*eval_CNLLvec+ll_prior.sum(1,keepdims=True)-ll_posterior.sum(1,keepdims=True)
         
         eval_inputs = [eval_z_q]
-        if U is not None:
-            eval_inputs.append(U)
-        
         self.likelihood          = theano.function(fxn_inputs, ll_estimate, name = 'Importance Sampling based likelihood')
         self.evaluate            = theano.function(fxn_inputs, eval_cost, name = 'Evaluate Bound')
         if self.params['use_prev_input']:
@@ -570,12 +541,16 @@ class DKF(BaseModel, object):
         self.transition_fxn      = theano.function(eval_inputs,[eval_mu_trans, eval_logcov_trans],
                                                        name='Transition Function')
         emission_inputs = [eval_z_q]
-        if self.params['emission_type']=='conditional' or self.params['emission_type']=='conditional_linear':
+        if self.params['emission_type']=='conditional':
             emission_inputs.append(X)
-        if self.params['data_type']!='binary_nade': #Don't write the emission function for NADE
-            self.emission_fxn = theano.function(emission_inputs, eval_obs_params, name='Emission Function')
-        self.posterior_inference = theano.function([X, eps], [eval_z_q, eval_mu_q, eval_logcov_q],name='Posterior Inference') 
+        if self.params['data_type']=='binary_nade':
+            self.emission_fxn = theano.function(emission_inputs, 
+                                                eval_obs_params[1], name='Emission Function')
+        else:
+            self.emission_fxn = theano.function(emission_inputs, 
+                                                eval_obs_params[0], name='Emission Function')
+        self.posterior_inference = theano.function([X, eps], 
+                                                   [eval_z_q, eval_mu_q, eval_logcov_q],
+                                                   name='Posterior Inference') 
 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
-    
-    

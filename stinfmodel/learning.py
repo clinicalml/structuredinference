@@ -56,20 +56,16 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
 
 
             eps     = np.random.randn(X.shape[0],maxT,dkf.params['dim_stochastic']).astype(config.floatX)
-
             batch_bound, p_norm, g_norm, opt_norm, negCLL, KL, anneal = dkf.train_debug(X=X, M=M, eps=eps)
 
             #Number of frames
             M_sum = M.sum()
-
             #Correction for replicating batch
             if replicate_K is not None:
                 batch_bound, negCLL, KL = batch_bound/replicate_K, negCLL/replicate_K, KL/replicate_K, 
                 M_sum   = M_sum/replicate_K
-
             #Update bound
             bound  += batch_bound
-
             ### Display ###
             if bnum%10==0:
                 if normalization=='frame':
@@ -78,10 +74,8 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
                     bval = batch_bound/float(X.shape[0])
                 else:
                     assert False,'Invalid normalization'
-                if p_norm is not None:
-                    dkf._p(('Bnum:%d, Batch Bound: %.4f, |w|: %.4f, |dw|: %.4f,|w_opt|:%.4f, -veCLL:%.4f, KL:%.4f: , anneal:%.4f')% (bnum,bval,p_norm, g_norm, opt_norm, negCLL, KL, anneal)) 
-                else:
-                    dkf._p(('Bnum:%d, Batch Bound: %.4f')%(bnum,bval)) 
+                dkf._p(('Bnum: %d, Batch Bound: %.4f, |w|: %.4f, |dw|: %.4f, |w_opt|: %.4f')%(bnum,bval,p_norm, g_norm, opt_norm)) 
+                dkf._p(('-veCLL:%.4f, KL:%.4f, anneal:%.4f')%(negCLL, KL, anneal))
         if normalization=='frame':
             bound /= float(mask.sum())
         elif normalization=='sequence':
