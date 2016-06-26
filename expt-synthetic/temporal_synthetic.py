@@ -403,8 +403,8 @@ class DKF(BaseModel, object):
             mean_p = obs_params[0]
             negCLL = (T.nnet.binary_crossentropy(mean_p,X).sum(2)*M).sum(1,keepdims=True)
         elif self.params['data_type']=='real':
-            mu_p   = obs_params[0]
-            logcov_p=obs_params[1]
+            mu_p      = obs_params[0]
+            logcov_p  = obs_params[1]
             negCLL_t  = 0.5 * np.log(2 * np.pi) + 0.5*logcov_p + 0.5 * ((X - mu_p) / T.exp(0.5*logcov_p))**2
             negCLL    = (negCLL_t.sum(2)*M).sum(1,keepdims=True)
         elif self.params['data_type']=='handwriting':

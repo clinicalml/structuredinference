@@ -20,9 +20,10 @@ if params['use_nade']:
     params['data_type']='binary_nade'
 #Setup VAE Model (or reload from existing savefile)
 start_time = time.time()
-from dkf_polyphonic import DKF
+from stinfmodels.dkf import DKF
 displayTime('import DKF',start_time, time.time())
 dkf    = None
+import ipdb;ipdb.set_trace()
 
 #Remove from params
 start_time = time.time()

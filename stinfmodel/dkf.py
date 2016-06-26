@@ -32,9 +32,7 @@ class DKF(BaseModel, object):
 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#
     def _fakeData(self):
-        """
-        Fake data for tag testing
-        """
+        """ Fake data for tag testing """
         T = 3
         N = 2
         mask = np.random.random((N,T)).astype(config.floatX)
@@ -48,19 +46,17 @@ class DKF(BaseModel, object):
     
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#
     def _createParams(self):
-        """
-                                    Model parameters
-        """
+        """ Model parameters """
         npWeights = OrderedDict()
         self._createInferenceParams(npWeights)
         self._createGenerativeParams(npWeights)
         return npWeights
     
     def _createGenerativeParams(self, npWeights):
-        """
-                                    Create weights/params for generative model
-        """
-        DIM_HIDDEN = self.params['dim_hidden']
+        """ Create weights/params for generative model """
+        if 'synthetic' in self.params['dataset']:
+            return
+        DIM_HIDDEN     = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
         if self.params['transition_type']=='mlp':
             DIM_HIDDEN_TRANS = DIM_HIDDEN*2
@@ -124,7 +120,6 @@ class DKF(BaseModel, object):
                 npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
         else:
             assert False, 'Invalid emission type: '+str(self.params['emission_type'])
-        
         if self.params['data_type']=='binary':
             npWeights['p_emis_W_ber'] = self._getWeight((self.params['dim_hidden'], self.params['dim_observations']))
             npWeights['p_emis_b_ber'] = self._getWeight((self.params['dim_observations'],))
@@ -137,9 +132,8 @@ class DKF(BaseModel, object):
             assert False,'Invalid datatype: '+params['data_type']
 
     def _createInferenceParams(self, npWeights):
-        """
-                                     Create weights/params for inference network
-        """
+        """  Create weights/params for inference network """
+        
         #Initial embedding for the inputs
         DIM_INPUT  = self.params['dim_observations']
         RNN_SIZE   = self.params['rnn_size']
@@ -159,7 +153,10 @@ class DKF(BaseModel, object):
         if self.params['inference_model']=='mean_field':
             pass 
         elif self.params['inference_model']=='structured':
-            npWeights['q_W_st_0'] = self._getWeight((self.params['dim_stochastic'], self.params['rnn_size']))
+            DIM_INPUT = self.params['dim_stochastic']
+            if self.params['use_generative_prior']:
+                DIM_INPUT = self.params['rnn_size']
+            npWeights['q_W_st_0'] = self._getWeight((DIM_INPUT, self.params['rnn_size']))
             npWeights['q_b_st_0'] = self._getWeight((self.params['rnn_size'],))
         else:
             assert False,'Invalid inference model: '+self.params['inference_model']
@@ -195,6 +192,13 @@ class DKF(BaseModel, object):
         Input:  z [bs x T x dim]
         Output: (params, ) or (mu, cov) of size [bs x T x dim]
         """
+        if 'synthetic' in self.params['dataset']:
+            self._p('Using emission function for '+self.params['dataset'])
+            mu       = self.params_synthetic[self.params['dataset']]['obs_fxn'](z)
+            cov      = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['obs_cov']
+            cov.name = 'EmissionLogCov'
+            return [mu,cov]
+        
         if self.params['emission_type']=='mlp':
             self._p('EMISSION TYPE: MLP')
             hid = z
@@ -210,8 +214,7 @@ class DKF(BaseModel, object):
             hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)], 
                                  self.tWeights['p_emis_b_'+str(l)], hid)
         if self.params['data_type']=='binary':
-            mean_params=T.nnet.sigmoid(T.dot(hid,self._LinearNL(self.tWeights['p_emis_W_ber'])+
-                                             self.tWeights['p_emis_b_ber'])
+            mean_params=T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
             return [mean_params]
         elif self.params['data_type']=='binary_nade':
             self._p('NADE observations')
@@ -233,7 +236,7 @@ class DKF(BaseModel, object):
                                                    sequences=[x_reshaped, W, V, b],
                                                    outputs_info=[a0, x0,None])
             """
-             def NADEDensityAndSample(x, w, v, b, a_prev, x_prev ):
+            def NADEDensityAndSample(x, w, v, b, a_prev, x_prev ):
                 a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
                 h   = T.nnet.sigmoid(a) #bs x T x nhid
                 p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
@@ -252,14 +255,21 @@ class DKF(BaseModel, object):
         else:
             assert False,'Invalid type of data'
     
-    def _getTransitionFxn(self, z, X=None, fixedLogCov = None):
+    def _getTransitionFxn(self, z, X=None):
         """
         Apply transition function to zs
         Input:  z [bs x T x dim], u<if actions present in model> [bs x T x dim]
         Output: mu, cov of size [bs x T x dim]
         """
+        if 'synthetic' in self.params['dataset']:
+            self._p('Using transition function for '+self.params['dataset'])
+            mu  = self.params_synthetic[self.params['dataset']]['trans_fxn'](z)
+            cov = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['trans_cov']
+            cov.name = 'TransitionCov'
+            return mu,logcov
+        
         if self.params['transition_type']=='simple_gated':
-            def mlp(inp, W1,b1,W2,b2, X_prev=None, W_prev=None, b_prev=None):
+            def mlp(inp, W1,b1,W2,b2, X_prev=None):
                 if X_prev is not None:
                     h1 = self._LinearNL(W1,b1, T.concatenate([inp,X_prev],axis=2))
                 else:
@@ -268,16 +278,15 @@ class DKF(BaseModel, object):
                 return h2
             
             gateInp= z
-            X_prev,W_prev,b_prev = None,None,None
+            X_prev = None
             if self.params['use_prev_input']:
                 X_prev = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
             gate   = T.nnet.sigmoid(mlp(gateInp, self.tWeights['p_gate_embed_W_0'], self.tWeights['p_gate_embed_b_0'], 
                                         self.tWeights['p_gate_embed_W_1'],self.tWeights['p_gate_embed_b_1'],
-                                        X_prev = X_prev, W_prev = W_prev, b_prev = b_prev))
+                                        X_prev = X_prev))
             
-            z_prop = mlp(z,self.tWeights['p_z_W_0'] ,self.tWeights['p_z_b_0'],
-                         self.tWeights['p_z_W_1'] , self.tWeights['p_z_b_1'],
-                        X_prev = X_prev, W_prev = W_prev, b_prev = b_prev)
+            z_prop = mlp(z,self.tWeights['p_z_W_0'] ,self.tWeights['p_z_b_0'], 
+                         self.tWeights['p_z_W_1'] , self.tWeights['p_z_b_1'], X_prev = X_prev)
             mu     = gate*z_prop + (1.-gate)*(T.dot(z, self.tWeights['p_trans_W_mu'])+self.tWeights['p_trans_b_mu'])
             cov    = T.nnet.softplus(T.dot(self._applyNL(z_prop), self.tWeights['p_trans_W_cov'])+
                                      self.tWeights['p_trans_b_cov'])
@@ -335,15 +344,28 @@ class DKF(BaseModel, object):
                                     q_W_st_0, q_b_st_0,
                                     q_W_mu, q_b_mu,
                                     q_W_cov,q_b_cov):
-            h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
-            if self.params['var_model']=='lstmlr':
-                h_next = (1./3.)*(h_t+h_next)
+            #Using the prior distribution directly
+            if self.params['use_generative_prior']:
+                assert not self.params['use_prev_input'],'No support for using previous input'
+                #Get mu/cov from z_prev through prior distribution
+                mu_1,cov_1 = self._getTransitionFxn(z_prev) 
+                #Combine with estimate of mu/cov from data
+                h_data     = T.tanh(T.dot(h_t,q_W_st_0)+q_b_st_0)
+                mu_2       = T.dot(h_data,q_W_mu)+q_b_mu
+                cov_2      = T.nnet.softplus(T.dot(h_data,q_W_cov)+q_b_cov)
+                mu         = (mu_1*cov_2+mu_2*cov_1)/(cov_1+cov_2)
+                cov        = (cov_1*cov_2)/(cov_1+cov_2)
+                z          = mu + T.sqrt(cov)*eps_t
             else:
-                h_next = (1./2.)*(h_t+h_next)
-            mu_t         = T.dot(h_next,q_W_mu)+q_b_mu
-            cov_t        = T.nnet.softplus(T.dot(h_next,q_W_cov)+q_b_cov)
-            z_t          = mu_t+T.sqrt(cov_t)*eps_t
-            return z_t, mu_t, cov_t
+                h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
+                if self.params['var_model']=='lstmlr':
+                    h_next = (1./3.)*(h_t+h_next)
+                else:
+                    h_next = (1./2.)*(h_t+h_next)
+                mu_t       = T.dot(h_next,q_W_mu)+q_b_mu
+                cov_t      = T.nnet.softplus(T.dot(h_next,q_W_cov)+q_b_cov)
+                z_t        = mu_t+T.sqrt(cov_t)*eps_t
+                return z_t, mu_t, cov_t
         
         if self.params['inference_model']=='structured':
             #Structured recognition networks
@@ -351,9 +373,9 @@ class DKF(BaseModel, object):
                 state   = hidden_state[0]+hidden_state[1]
             else:
                 state   = hidden_state
-            eps_swap= eps.swapaxes(0,1)
+            eps_swap    = eps.swapaxes(0,1)
             #Create empty extra dimension
-            rval, _ = theano.scan(structuredApproximation, 
+            rval, _     = theano.scan(structuredApproximation, 
                                     sequences=[state, eps_swap],
                                     outputs_info=[
                                     T.alloc(np.asarray(0.,dtype=config.floatX), 
@@ -370,14 +392,12 @@ class DKF(BaseModel, object):
             if self.params['var_model']=='LR':
                 l2r = hidden_state[0].swapaxes(0,1)
                 r2l = hidden_state[1].swapaxes(0,1)
-                hidl2r = l2r
+                hidl2r   = l2r
                 mu_1     = T.dot(hidl2r,self.tWeights['q_W_mu'])+self.tWeights['q_b_mu']
-                cov_1    = T.nnet.softplus(T.dot(hidl2r,
-                                                 self.tWeights['q_W_cov'])+self.tWeights['q_b_cov'])
-                hidr2l = r2l
+                cov_1    = T.nnet.softplus(T.dot(hidl2r, self.tWeights['q_W_cov'])+self.tWeights['q_b_cov'])
+                hidr2l   = r2l
                 mu_2     = T.dot(hidr2l,self.tWeights['q_W_mu_r'])+self.tWeights['q_b_mu_r']
-                cov_2    = T.nnet.softplus(T.dot(hidr2l,
-                                                 self.tWeights['q_W_cov_r'])+self.tWeights['q_b_cov_r'])
+                cov_2    = T.nnet.softplus(T.dot(hidr2l, self.tWeights['q_W_cov_r'])+self.tWeights['q_b_cov_r'])
                 mu = (mu_1*cov_2+mu_2*cov_1)/(cov_1+cov_2)
                 cov= (cov_1*cov_2)/(cov_1+cov_2)
                 z = mu + T.sqrt(cov)*eps
@@ -391,13 +411,11 @@ class DKF(BaseModel, object):
             assert False,'Invalid recognition model'
         
     def _qEmbeddingLayer(self, X):
-        """
-        Take input X and pass it through embedding function in q to reduce dimensionality
-        """
+        """ Embed for q """
         return self._LinearNL(self.tWeights['q_W_input_0'],self.tWeights['q_b_input_0'], X)
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
     
-    def _inferenceAndReconstruction(self, X, eps, U=None, dropout_prob = 0.):
+    def _inferenceAndReconstruction(self, X, eps, dropout_prob = 0.):
         """
         Returns z_q, mu_q and logcov_q
         """
@@ -407,18 +425,16 @@ class DKF(BaseModel, object):
         z_q,mu_q,cov_q    = self._inferenceLayer(hidden_state, eps)
         
         #Regularize z_q (for train) 
-        if dropout_prob>0.:
-            z_q  = z_q + self.srng.normal(z_q.shape, 0.,0.0025,dtype=config.floatX)
-        z_q.name          = 'z_q'
+        #if dropout_prob>0.:
+        #    z_q  = z_q + self.srng.normal(z_q.shape, 0.,0.0025,dtype=config.floatX)
+        #z_q.name          = 'z_q'
         
         observation_params = self._getEmissionFxn(z_q,X=X)
-        mu_trans,cov_trans = self._getTransitionFxn(z_q, u=U,X=X)
+        mu_trans, cov_trans= self._getTransitionFxn(z_q, X=X)
         mu_prior     = T.concatenate([T.alloc(np.asarray(0.).astype(config.floatX),
-                                              X.shape[0],1,self.params['dim_stochastic']),
-                       mu_trans[:,:-1,:]],axis=1)
+                                              X.shape[0],1,self.params['dim_stochastic']), mu_trans[:,:-1,:]],axis=1)
         cov_prior = T.concatenate([T.alloc(np.asarray(1.).astype(config.floatX),
-                                              X.shape[0],1,self.params['dim_stochastic']),
-                       cov_trans[:,:-1,:]],axis=1)
+                                              X.shape[0],1,self.params['dim_stochastic']), cov_trans[:,:-1,:]],axis=1)
         return observation_params, z_q, mu_q, cov_q, mu_prior, cov_prior, mu_trans, cov_trans
     
     
@@ -447,17 +463,22 @@ class DKF(BaseModel, object):
         X: target of size bs x T x dim
         """
         assert self.params['data_type']=='binary' or self.params['data_type']=='binary_nade','binary only'
-        mean_p = obs_params[0]
-        negCLL = (T.nnet.binary_crossentropy(mean_p,X).sum(2)*M).sum(1,keepdims=True)
+        if self.params['data_type']=='real':
+            mu_p      = obs_params[0]
+            cov_p     = obs_params[1]
+            std_p     = T.sqrt(cov_p)
+            negCLL_t  = 0.5 * np.log(2 * np.pi) + 0.5*T.log(cov_p) + 0.5 * ((X - mu_p) / std_p)**2
+            negCLL    = (negCLL_t.sum(2)*M).sum(1,keepdims=True)
+        else:
+            mean_p = obs_params[0]
+            negCLL = (T.nnet.binary_crossentropy(mean_p,X).sum(2)*M).sum(1,keepdims=True)
         if batchVector:
             return negCLL
         else:
             return negCLL.sum()
-        
+
     def _buildModel(self):
-        """
-        High level function to build and setup theano functions
-        """
+        """ High level function to build and setup theano functions """
         X      = T.tensor3('X',   dtype=config.floatX)
         eps    = T.tensor3('eps', dtype=config.floatX)
         M      = T.matrix('M', dtype=config.floatX)
@@ -468,12 +489,10 @@ class DKF(BaseModel, object):
         self._addWeights('lr', np.asarray(self.params['lr'],dtype=config.floatX),borrow=False)
         self._addWeights('anneal', np.asarray(0.01,dtype=config.floatX),borrow=False)
         self._addWeights('update_ctr', np.asarray(1.,dtype=config.floatX),borrow=False)
-        
         lr             = self.tWeights['lr']
         anneal         = self.tWeights['anneal']
-        iteration_t    = self.tWeights['update_ctr'] 
-        #Halve the learning rate
-        #lr_update = [(lr,T.switch(lr*0.90<1e-4,lr,lr*0.90))]                          
+        iteration_t    = self.tWeights['update_ctr']
+        
         anneal_div     = 1000.
         if 'anneal_rate' in self.params:
             self._p('Anneal = 1 in '+str(self.params['anneal_rate'])+' param. updates')
@@ -488,7 +507,7 @@ class DKF(BaseModel, object):
             print '****** CREATING TRAINING FUNCTION*****'
             ############# Setup training functions ###########
             obs_params, z_q, mu_q, cov_q, mu_prior, cov_prior, _, _ = self._inferenceAndReconstruction( 
-                                                              X, eps, U= U,
+                                                              X, eps,
                                                               dropout_prob = self.params['rnn_dropout'])
             negCLL = self._getNegCLL(obs_params, X, M)
             TemporalKL = self._getTemporalKL(mu_q, cov_q, mu_prior, cov_prior, M)
@@ -505,8 +524,6 @@ class DKF(BaseModel, object):
                                                            
             #Add annealing updates
             optimizer_up +=anneal_update
-            #self.decay_lr   = theano.function([],lr.sum(),name = 'Update LR',updates=lr_update)
-
             ############# Setup train & evaluate functions ###########
             self.train_debug         = theano.function(fxn_inputs,[train_cost,norm_list[0],norm_list[1],
                                                                         norm_list[2],negCLL, TemporalKL, anneal.sum()], 
@@ -514,7 +531,7 @@ class DKF(BaseModel, object):
         
         eval_obs_params, eval_z_q, eval_mu_q, eval_cov_q, eval_mu_prior, eval_cov_prior, \
         eval_mu_trans, eval_cov_trans = self._inferenceAndReconstruction(
-                                                          X, eps, U= U,
+                                                          X, eps,
                                                           dropout_prob = 0.)
         eval_z_q.name = 'eval_z_q'
         eval_CNLLvec=self._getNegCLL(eval_obs_params, X, M, batchVector = True)
@@ -552,5 +569,9 @@ class DKF(BaseModel, object):
         self.posterior_inference = theano.function([X, eps], 
                                                    [eval_z_q, eval_mu_q, eval_logcov_q],
                                                    name='Posterior Inference') 
-
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
+if __name__=='__main__':
+    from utils.misc import readPickle
+    params = readPickle('../default.pkl')[0]
+    dkf = DKF(params, paramFile = 'tmp')
+    os.unlink('tmp')

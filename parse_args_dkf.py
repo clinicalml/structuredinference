@@ -23,6 +23,7 @@ parser.add_argument('-tl','--transition_layers', action='store', default = 2, he
 parser.add_argument('-ttype','--transition_type', action='store', default = 'simple_gated', help='Layers in transition fxn', type=str, choices=['mlp','simple_gated'])
 parser.add_argument('-previnp','--use_prev_input', action='store_true', help='Use previous input in transition')
 parser.add_argument('-usenade','--use_nade', action='store_true', help='Use NADE ')
+parser.add_argument('-useprior','--use_generative_prior', action='store_true', help='Use genertative prior in inference network')
 
 parser.add_argument('-el','--emission_layers', action='store',default = 2, help='Layers in emission fxn', type=int)
 parser.add_argument('-etype','--emission_type', action='store',default = 'mlp', help='Type of emission fxn', type=str, choices=['mlp','conditional'])
@@ -88,3 +89,9 @@ for k in hmap:
             combined+=hmap[k]+'-'+str(params[k])+'-'
 params['unique_id'] = combined[:-1]+'-'+params['unique_id']
 params['unique_id'] = 'DKF_'+params['unique_id'].replace('.','_')
+
+"""
+import cPickle as pickle
+with open('default.pkl','wb') as f:
+    pickle.dump(params,f)
+"""
