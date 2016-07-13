@@ -2,15 +2,15 @@
 Structured Inference Networks for Deep Kalman Filters 
 
 ## Goal
-The goal of this package is to present a black box algorithm inference algorithm to learn models of time-series data. 
-Learning is performed using a recognition network.
+The goal of this package is to provide a black box algorithm inference algorithm to learn varying models of time-series data. 
+Learning of the underlying model is performed using a recognition or inference network.
 
 ## Model
 The figure below describes a simple model of time-series data.
-Typically, (1) if you have enough training data (2)
-if you would like to have a method for fast posterior inference at train 
-and test time and (3) if your generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables), this method would be a good fit
-to learn your model. 
+This method would be a good fit to perform inference and learning within your model when:
+* You have enough training examples to learn the generative model
+* You would like to have a method for fast posterior inference at train and test time 
+* Your temporal generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables).
 
 ![DKF](images/dkf.png?raw=true "Deep Kalman Filter")
 
@@ -18,9 +18,18 @@ The code learns the model by optimizing the variational lower bound.
 
 ![ELBO](images/ELBO.png?raw=true width="500" height="70" "Evidence Lower Bound")
 
-*Generative Model* The latent variables z1...zT and the observations x1...xT describe the generative process for the data. The figure depicts a simple state space model for time-varying data. 
+*Generative Model* 
 
-*Inference Model* The black-box q(z1..zT|x1...xT) represents the inference network. There are several supported inference networks within this package. See below for details on how to use different ones. 
+* The latent variables z1...zT and the observations x1...xT describe the generative process for the data.
+* The figure depicts a state space model for time-varying data. 
+* The emission and transition functions may be pre-specified or 
+
+*Inference Model* 
+
+The box q(z1..zT|x1...xT) represents the inference network. There are several supported inference networks within this package. 
+* Inference implemented with a bi-directional LSTM
+* Inference implemented with an LSTM conditioned on observations in the future
+* Inference implemented with an LSTM conditioned on observations from the past
 
 ## Installation
 
