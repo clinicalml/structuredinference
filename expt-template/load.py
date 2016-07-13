@@ -1,5 +1,7 @@
 import numpy as np
-
+"""
+    Create a fake dataset time series dataset
+"""
 def loadDataset():
     dataset = {}
     Ntrain, Nvalid, Ntest = 10000,500,500
@@ -11,4 +13,5 @@ def loadDataset():
     dataset['test']       = (np.random.randn(Ntest,T,dim_observations)>0)*1.
     dataset['mask_test']  = np.ones((Ntest,T))
     dataset['dim_observations'] = dim_observations 
+    dataset['data_type'] = 'binary'
     return dataset

@@ -15,6 +15,7 @@ parser.add_argument('-rd','--rnn_dropout', action='store',default = 0.1, help='D
 parser.add_argument('-vm','--var_model', action='store',default = 'lstmr', help='Variational Model', type=str, choices=['L','LR','R'])
 parser.add_argument('-infm','--inference_model', action='store',default = 'structured', help='Inference Model', type=str, choices=['mean_field','structured'])
 parser.add_argument('-ql','--q_mlp_layers', action='store',default = 1, help='#Layers in Recognition Model', type=int)
+parser.add_argument('-useprior','--use_generative_prior', action='store_true', help='Use genertative prior in inference network')
 
 #Generative model
 parser.add_argument('-ds','--dim_stochastic', action='store',default = 100, help='Stochastic dimensions', type=int)
@@ -23,7 +24,6 @@ parser.add_argument('-tl','--transition_layers', action='store', default = 2, he
 parser.add_argument('-ttype','--transition_type', action='store', default = 'simple_gated', help='Layers in transition fxn', type=str, choices=['mlp','simple_gated'])
 parser.add_argument('-previnp','--use_prev_input', action='store_true', help='Use previous input in transition')
 parser.add_argument('-usenade','--use_nade', action='store_true', help='Use NADE ')
-parser.add_argument('-useprior','--use_generative_prior', action='store_true', help='Use genertative prior in inference network')
 
 parser.add_argument('-el','--emission_layers', action='store',default = 2, help='Layers in emission fxn', type=int)
 parser.add_argument('-etype','--emission_type', action='store',default = 'mlp', help='Type of emission fxn', type=str, choices=['mlp','conditional'])
@@ -80,6 +80,7 @@ hmap['use_prev_input']='previnp'
 hmap['anneal_rate']='ar'
 hmap['reg_value']='rv'
 hmap['use_nade']='nade'
+hmap['use_generative_prior']='gp'
 combined   = ''
 for k in hmap:
     if k in params:
@@ -89,7 +90,6 @@ for k in hmap:
             combined+=hmap[k]+'-'+str(params[k])+'-'
 params['unique_id'] = combined[:-1]+'-'+params['unique_id']
 params['unique_id'] = 'DKF_'+params['unique_id'].replace('.','_')
-
 """
 import cPickle as pickle
 with open('default.pkl','wb') as f:

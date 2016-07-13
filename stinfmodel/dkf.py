@@ -3,6 +3,7 @@ import six.moves.cPickle as pickle
 from collections import OrderedDict
 import numpy as np
 import sys, time, os, gzip, theano,math
+sys.path.append('../')
 from theano import config
 theano.config.compute_test_value = 'warn'
 from theano.printing import pydotprint
@@ -211,8 +212,10 @@ class DKF(BaseModel, object):
         
         self._p('TODO: FIX THIS, SHOULD BE LINEAR FOR NADE')
         for l in range(self.params['emission_layers']):
-            hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)], 
-                                 self.tWeights['p_emis_b_'+str(l)], hid)
+            #Do not use a non-linearity in the last layer
+            #if l==self.params['emission_layers']-1:
+            #    hid = T.dot(hid, self.tWeights['p_emis_W_'+str(l)]) + self.tWeights['p_emis_b_'+str(l)]
+            hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)],  self.tWeights['p_emis_b_'+str(l)], hid)
         if self.params['data_type']=='binary':
             mean_params=T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
             return [mean_params]
@@ -236,19 +239,21 @@ class DKF(BaseModel, object):
                                                    sequences=[x_reshaped, W, V, b],
                                                    outputs_info=[a0, x0,None])
             """
-            def NADEDensityAndSample(x, w, v, b, a_prev, x_prev ):
-                a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
-                h   = T.nnet.sigmoid(a) #bs x T x nhid
+            def NADEDensityAndSample(x, w, v, b, 
+                                     a_prev,   x_prev, 
+                                     a_prev_s, x_prev_s ):
+                a     = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
+                h     = T.nnet.sigmoid(a) #bs x T x nhid
                 p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
                 
                 a_s   = a_prev_s + T.dot(T.shape_padright(x_prev_s, 1), T.shape_padleft(w, 1))
                 h_s   = T.nnet.sigmoid(a_s) #bs x T x nhid
                 p_xi_is_one_s = T.nnet.sigmoid(T.dot(h_s, v) + b)
-                x_s   = T.switch(p_xi_is_one_s>0.5,1,0)
-                return (a, x, x_s, p_xi_is_one,p_xi_is_one_s)
-            ([_, _, _, _, mean_params,sampled_params], _) = theano.scan(NADEDensity,
+                x_s   = T.switch(p_xi_is_one_s>0.5,1.,0.)
+                return (a, x, a_s, x_s, p_xi_is_one, p_xi_is_one_s)
+            ([_, _, _, _, mean_params,sampled_params], _) = theano.scan(NADEDensityAndSample,
                                                    sequences=[x_reshaped, W, V, b],
-                                                   outputs_info=[a0, x0, x0,None ,None])
+                                                   outputs_info=[a0, x0, a0, x0, None, None])
             sampled_params = sampled_params.dimshuffle(1,2,0)
             mean_params    = mean_params.dimshuffle(1,2,0)
             return [mean_params,sampled_params]
@@ -339,7 +344,7 @@ class DKF(BaseModel, object):
         Input: hidden_state [T x bs x dim], eps [bs x T x dim]
         Output: z [bs x T x dim], mu [bs x T x dim], cov [bs x T x dim]
         """
-        
+        import ipdb;ipdb.set_trace()
         def structuredApproximation(h_t, eps_t, z_prev, 
                                     q_W_st_0, q_b_st_0,
                                     q_W_mu, q_b_mu,
@@ -571,7 +576,12 @@ class DKF(BaseModel, object):
                                                    name='Posterior Inference') 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
 if __name__=='__main__':
-    from utils.misc import readPickle
-    params = readPickle('../default.pkl')[0]
+    from parse_args_dkf import params
+    if params['use_nade']:
+        params['data_type'] = 'binary_nade'
+    else:
+        params['data_type'] = 'binary'
+    params['dim_observations']  = 10
+    
     dkf = DKF(params, paramFile = 'tmp')
     os.unlink('tmp')

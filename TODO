@@ -1,0 +1,25 @@
+1) check that synthetic + polyphonic has been merged
+-compile check
+
+-write a list of all the options that are used for different code bases
+-create sh files to run all the polyphonic files with different options and run then for 1 epoch
+-do the same for synthetic use create experiment to create the necessary sh files
+
+Once you've verified that everything compiles -> set everything to run. 
+
+TODO: This includes doing a ****sperate**** run with the *** fixed *** NADE
+TODO: At the end of the training script, create a small snippet to estimate the lower bound at test time
+TODO: remember that for some of the larger NADE models, due to memory requirements, we have to use smaller models
+Keep this in mind when creating the sh scripts
+This should take ~24 hours. 
+
+Create a file that takes in all the files created and creates the tables that are necessary/used
+ipynb/ -> make sure the ipython notebook creates the synthetic plots as in the paper
+
+Aaaaand you're done
+--------------------------------------
+
+Paper for arxiv
+
+Edits to paper -> talk about the use of prior add in acknowledgements 
+Clean up grammer and make small edits to cealn up notation etc. 
