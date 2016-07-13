@@ -93,8 +93,6 @@ During learning, we select a minibatch of these tensors to update the weights of
 
 
 ### Running on different datasets
-To run the models on different datasets, create a file to load the dataset into a format that is similar to the above and
-follow the setup in expt-polyphonic/train.py to create the training script. 
 
 **See the folder expt-template for an example of how to create and run the code on your data**
 
