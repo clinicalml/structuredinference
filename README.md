@@ -3,7 +3,7 @@ Structured Inference Networks for Deep Kalman Filters
 
 ## Goal
 The goal of this package is to provide a black box algorithm inference algorithm to learn varying models of time-series data. 
-Learning of the underlying model is performed using a recognition or inference network.
+Learning of the underlying model is performed using a recognition or  [inference network.](https://arxiv.org/abs/1401.4082)
 
 ## Model
 The figure below describes a simple model of time-series data.
@@ -22,11 +22,11 @@ The code learns the model by optimizing the variational lower bound.
 
 * The latent variables z1...zT and the observations x1...xT describe the generative process for the data.
 * The figure depicts a state space model for time-varying data. 
-* The emission and transition functions may be pre-specified or 
+* The emission and transition functions may be pre-specified to have a fixed functional form or be learned as a function parameterized by a deep neural network
 
 *Inference Model* 
 
-The box q(z1..zT|x1...xT) represents the inference network. There are several supported inference networks within this package. 
+The box q(z1..zT | x1...xT) represents the inference network. There are several supported inference networks within this package. 
 * Inference implemented with a bi-directional LSTM
 * Inference implemented with an LSTM conditioned on observations in the future
 * Inference implemented with an LSTM conditioned on observations from the past
@@ -97,6 +97,8 @@ To run the models on different datasets, create a file to load the dataset into 
 follow the setup in expt-polyphonic/train.py to create the training script. 
 
 **See the folder expt-template for an example of how to create and run the code on your data**
+
+
 
 ## References: 
 ```
