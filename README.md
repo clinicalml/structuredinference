@@ -12,11 +12,11 @@ if you would like to have a method for fast posterior inference at train
 and test time and (3) if your generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables), this method would be a good fit
 to learn your model. 
 
-<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/dkf.png?token=AA5BDBHi5YtrrTw5HTk_tNt6F97hc1Bqks5XaKQ9wA%3D%3D alt="DKF" width="500" height="300"/>
+![DKF](images/dkf.png?raw=true "Deep Kalman Filter")
 
 The code learns the model by optimizing the variational lower bound.
 
-<img src=https://raw.githubusercontent.com/clinicalml/structuredinference/master/images/ELBO.png?token=AA5BDM8-tMTqh4OCy8W9R87zIFgc3Jwbks5XaNJJwA%3D%3D alt="ELBO" width="500" height="70"/>
+![ELBO](images/ELBO.png?raw=true width="500" height="70" "Evidence Lower Bound")
 
 *Generative Model* The latent variables z1...zT and the observations x1...xT describe the generative process for the data. The figure depicts a simple state space model for time-varying data. 
 
