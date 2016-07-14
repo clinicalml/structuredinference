@@ -166,7 +166,7 @@ class DKF(BaseModel, object):
         npWeights['q_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
         npWeights['q_W_cov'] = self._getWeight((RNN_SIZE, self.params['dim_stochastic']))
         npWeights['q_b_cov'] = self._getWeight((self.params['dim_stochastic'],))
-        if self.params['var_model']=='lstmlr' and self.params['inference_model']=='mean_field':
+        if self.params['var_model']=='LR' and self.params['inference_model']=='mean_field':
             npWeights['q_W_mu_r']       = self._getWeight((RNN_SIZE, self.params['dim_stochastic']))
             npWeights['q_b_mu_r']       = self._getWeight((self.params['dim_stochastic'],))
             npWeights['q_W_cov_r'] = self._getWeight((RNN_SIZE, self.params['dim_stochastic']))
@@ -175,9 +175,9 @@ class DKF(BaseModel, object):
     def _createLSTMWeights(self, npWeights):
         #LSTM L/LR/R w/ orthogonal weight initialization
         suffices_to_build = []
-        if self.params['var_model']=='lstmlr' or self.params['var_model']=='lstm':
+        if self.params['var_model']=='LR' or self.params['var_model']=='L':
             suffices_to_build.append('l')
-        if self.params['var_model']=='lstmlr' or self.params['var_model']=='lstmr':
+        if self.params['var_model']=='LR' or self.params['var_model']=='R':
             suffices_to_build.append('r')
         RNN_SIZE = self.params['rnn_size']
         for suffix in suffices_to_build:
@@ -320,13 +320,13 @@ class DKF(BaseModel, object):
         start_time = time.time()
         self._p('In <_buildLSTM>')
         suffix = ''
-        if self.params['var_model']=='lstmr':
+        if self.params['var_model']=='R':
             suffix='r'
             return self._LSTMlayer(embedding, suffix, dropout_prob)
-        elif self.params['var_model']=='lstm':
+        elif self.params['var_model']=='L':
             suffix='l'
             return self._LSTMlayer(embedding, suffix, dropout_prob)
-        elif self.params['var_model']=='lstmlr':
+        elif self.params['var_model']=='LR':
             suffix='l'
             l2r   = self._LSTMlayer(embedding, suffix, dropout_prob)
             suffix='r'
@@ -363,7 +363,7 @@ class DKF(BaseModel, object):
                 z          = mu + T.sqrt(cov)*eps_t
             else:
                 h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
-                if self.params['var_model']=='lstmlr':
+                if self.params['var_model']=='LR':
                     h_next = (1./3.)*(h_t+h_next)
                 else:
                     h_next = (1./2.)*(h_t+h_next)

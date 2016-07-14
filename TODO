@@ -1,6 +1,10 @@
-1) check that synthetic + polyphonic has been merged
--compile check
+1) check that a simple template can be run [Done]
+-create load dataset [Done]
+-create train.py that loads and runs the dataset [Done]
+-create sh file that calls train. [Done]
 
+2) check that synthetic + polyphonic has been merged
+-compile check
 -write a list of all the options that are used for different code bases
 -create sh files to run all the polyphonic files with different options and run then for 1 epoch
 -do the same for synthetic use create experiment to create the necessary sh files

@@ -12,7 +12,7 @@ parser.add_argument('-dset','--dataset', action='store',default = '', help='Data
 parser.add_argument('-rl','--rnn_layers', action='store',default = 1, help='Number of layers in the RNN', type=int, choices=[1,2])
 parser.add_argument('-rs','--rnn_size', action='store',default = 600, help='Hidden unit size in q model/RNN', type=int)
 parser.add_argument('-rd','--rnn_dropout', action='store',default = 0.1, help='Dropout after each RNN output layer', type=float)
-parser.add_argument('-vm','--var_model', action='store',default = 'lstmr', help='Variational Model', type=str, choices=['L','LR','R'])
+parser.add_argument('-vm','--var_model', action='store',default = 'R', help='Variational Model', type=str, choices=['L','LR','R'])
 parser.add_argument('-infm','--inference_model', action='store',default = 'structured', help='Inference Model', type=str, choices=['mean_field','structured'])
 parser.add_argument('-ql','--q_mlp_layers', action='store',default = 1, help='#Layers in Recognition Model', type=int)
 parser.add_argument('-useprior','--use_generative_prior', action='store_true', help='Use genertative prior in inference network')

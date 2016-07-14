@@ -1,7 +1,7 @@
 """
 Functions for learning with a DKF object
 """
-import stinfmodels.evaluate as DKF_evaluate
+import evaluate as DKF_evaluate
 
 def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000, 
           batch_size=200, shuffle=False,
