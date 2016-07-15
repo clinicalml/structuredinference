@@ -344,7 +344,6 @@ class DKF(BaseModel, object):
         Input: hidden_state [T x bs x dim], eps [bs x T x dim]
         Output: z [bs x T x dim], mu [bs x T x dim], cov [bs x T x dim]
         """
-        import ipdb;ipdb.set_trace()
         def structuredApproximation(h_t, eps_t, z_prev, 
                                     q_W_st_0, q_b_st_0,
                                     q_W_mu, q_b_mu,
