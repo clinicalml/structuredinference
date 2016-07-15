@@ -1,5 +1,5 @@
 # structuredInf
-Structured Inference Networks for Deep Kalman Filters 
+Structured Inference Networks for [Deep Kalman Filters](http://arxiv.org/abs/1511.05121).
 
 ## Goal
 The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
