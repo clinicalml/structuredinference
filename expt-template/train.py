@@ -40,7 +40,7 @@ import stinfmodel.learning as DKF_learn
 import stinfmodel.evaluate as DKF_evaluate
 displayTime('import DKF',start_time, time.time())
 dkf    = None
-
+ 
 #Remove from params
 start_time = time.time()
 removeIfExists('./NOSUCHFILE')
