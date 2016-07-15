@@ -2,8 +2,8 @@
 Structured Inference Networks for Deep Kalman Filters 
 
 ## Goal
-The goal of this package is to provide a black box algorithm inference algorithm to learn varying models of time-series data. 
-Learning of the underlying model is performed using a recognition or  [inference network.](https://arxiv.org/abs/1401.4082)
+The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
+The inference model is based on the idea of a recognition or [inference network.](https://arxiv.org/abs/1401.4082)
 
 ## Model
 The figure below describes a simple model of time-series data.
