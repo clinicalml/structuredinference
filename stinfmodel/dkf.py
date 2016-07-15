@@ -528,7 +528,9 @@ class DKF(BaseModel, object):
                                                            grad_norm = 1.)
                                                            
             #Add annealing updates
-            optimizer_up +=anneal_update
+            optimizer_up +=anneal_update+self.updates
+            self._p(str(len(self.updates))+' other updates')
+            self.updates_ack = True
             ############# Setup train & evaluate functions ###########
             self.train_debug         = theano.function(fxn_inputs,[train_cost,norm_list[0],norm_list[1],
                                                                         norm_list[2],negCLL, TemporalKL, anneal.sum()], 
