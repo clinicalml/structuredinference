@@ -3,7 +3,9 @@
 -create train.py that loads and runs the dataset [Done]
 -create sh file that calls train. [Done]
 
-2) check that synthetic + polyphonic has been merged
+-Made corrections to DKF to fix L/LR/R issue
+
+q2) check that synthetic + polyphonic has been merged
 -compile check
 -write a list of all the options that are used for different code bases
 -create sh files to run all the polyphonic files with different options and run then for 1 epoch
