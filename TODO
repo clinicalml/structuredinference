@@ -4,14 +4,19 @@
 -create sh file that calls train. [Done]
 -Made corrections to DKF to fix L/LR/R issue [Done]
 
-Remarks: Uri has tested this section. it runs for him. Closing. 
+Remarks: Uri has tested this section. it runs for him. [Done]
 
 q2) check that synthetic + polyphonic has been merged
--compile check <- checking against all options for polyphonic & synthetic 
--create sh files 
+-compile check <- checking against all options for polyphonic & synthetic  [Done]
+-create sh files [Done]
     -create files for different options [Done] 
     -run then for JSB
 -do the same for synthetic use create experiment to create the necessary sh files
+
+q3) Reproducing Results 
+
+1) Synthetic experiments 
+S2/S9
 
 Once you've verified that everything compiles -> set everything to run. 
 

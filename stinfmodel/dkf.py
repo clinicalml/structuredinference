@@ -223,7 +223,7 @@ class DKF(BaseModel, object):
             self._p('NADE observations')
             assert X is not None,'Need observations for NADE'
             x_reshaped   = X.dimshuffle(2,0,1)
-            x0 = T.ones_like(x_reshaped[0]) # bs x T
+            x0 = T.ones((hid.shape[0],hid.shape[1]))#x_reshaped[0]) # bs x T
             a0 = hid #bs x T x nhid
             W = self.tWeights['p_nade_W']
             V = self.tWeights['p_nade_U']
@@ -247,7 +247,6 @@ class DKF(BaseModel, object):
             ([_, _, sampled_params], _) = theano.scan(NADESample,
                                                    sequences=[W, V, b],
                                                    outputs_info=[a0, x0,None])
-            #import ipdb;ipdb.set_trace()
             """
             def NADEDensityAndSample(x, w, v, b, 
                                      a_prev,   x_prev, 
@@ -578,7 +577,6 @@ class DKF(BaseModel, object):
         if self.params['emission_type']=='conditional':
             emission_inputs.append(X)
         if self.params['data_type']=='binary_nade':
-            import ipdb;ipdb.set_trace()
             self.emission_fxn = theano.function(emission_inputs, 
                                                 eval_obs_params[1], name='Emission Function')
         else:
