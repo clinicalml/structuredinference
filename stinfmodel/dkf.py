@@ -229,14 +229,23 @@ class DKF(BaseModel, object):
             V = self.tWeights['p_nade_U']
             b = self.tWeights['p_nade_b']
             #Use a NADE at the output
-            """
-            def NADEDensity(x, w, v, b,a_prev, x_prev):#Estimating likelihood
+            def NADEDensity(x, w, v, b, a_prev, x_prev):#Estimating likelihood
                 a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
                 h   = T.nnet.sigmoid(a) #bs x T x nhid
                 p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
                 return (a, x, p_xi_is_one)
-            ([_, _, mean_params,sampled_params], _) = theano.scan(NADEDensity,
+            ([_, _, mean_params], _) = theano.scan(NADEDensity,
                                                    sequences=[x_reshaped, W, V, b],
+                                                   outputs_info=[a0, x0,None])
+            #theano function to sample from NADE
+            def NADESample(w, v, b, a_prev_s, x_prev_s):
+                a_s   = a_prev_s + T.dot(T.shape_padright(x_prev_s, 1), T.shape_padleft(w, 1))
+                h_s   = T.nnet.sigmoid(a_s) #bs x T x nhid
+                p_xi_is_one_s = T.nnet.sigmoid(T.dot(h_s, v) + b)
+                x_s   = T.switch(p_xi_is_one_s>0.5,1.,0.)
+                return (a_s, x_s, p_xi_is_one_s)
+            ([_, _, sampled_params], _) = theano.scan(NADESample,
+                                                   sequences=[W, V, b],
                                                    outputs_info=[a0, x0,None])
             """
             def NADEDensityAndSample(x, w, v, b, 
@@ -251,9 +260,11 @@ class DKF(BaseModel, object):
                 p_xi_is_one_s = T.nnet.sigmoid(T.dot(h_s, v) + b)
                 x_s   = T.switch(p_xi_is_one_s>0.5,1.,0.)
                 return (a, x, a_s, x_s, p_xi_is_one, p_xi_is_one_s)
+            
             ([_, _, _, _, mean_params,sampled_params], _) = theano.scan(NADEDensityAndSample,
                                                    sequences=[x_reshaped, W, V, b],
                                                    outputs_info=[a0, x0, a0, x0, None, None])
+            """
             sampled_params = sampled_params.dimshuffle(1,2,0)
             mean_params    = mean_params.dimshuffle(1,2,0)
             return [mean_params,sampled_params]
@@ -505,7 +516,6 @@ class DKF(BaseModel, object):
             anneal_div = 100.
         anneal_update  = [(iteration_t, iteration_t+1),
                           (anneal,T.switch(0.01+iteration_t/anneal_div>1,1,0.01+iteration_t/anneal_div))]
-        
         fxn_inputs = [X, M, eps]
         if not self.params['validate_only']:
             print '****** CREATING TRAINING FUNCTION*****'
@@ -567,6 +577,7 @@ class DKF(BaseModel, object):
         if self.params['emission_type']=='conditional':
             emission_inputs.append(X)
         if self.params['data_type']=='binary_nade':
+            import ipdb;ipdb.set_trace()
             self.emission_fxn = theano.function(emission_inputs, 
                                                 eval_obs_params[1], name='Emission Function')
         else:
@@ -577,12 +588,12 @@ class DKF(BaseModel, object):
                                                    name='Posterior Inference') 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
 if __name__=='__main__':
+    """ use this to check compilation for various options"""
     from parse_args_dkf import params
     if params['use_nade']:
         params['data_type'] = 'binary_nade'
     else:
         params['data_type'] = 'binary'
     params['dim_observations']  = 10
-    
     dkf = DKF(params, paramFile = 'tmp')
     os.unlink('tmp')
