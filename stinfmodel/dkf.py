@@ -595,5 +595,20 @@ if __name__=='__main__':
     else:
         params['data_type'] = 'binary'
     params['dim_observations']  = 10
-    dkf = DKF(params, paramFile = 'tmp')
+    import os,sys
+    tmp_stdout = sys.stdout
+    f = open(os.devnull, 'w')
+    sys.stdout = f
+    success = None
+    try:
+        dkf = DKF(params, paramFile = 'tmp')
+        success = True
+    except:
+        success = False
+    f.close()
+    sys.stdout = tmp_stdout
+    if success:
+        print 'SUCCESS'
+    else:
+        print 'FAILURE'
     os.unlink('tmp')

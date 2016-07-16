@@ -1,6 +1,7 @@
 
 from theano import config
 import numpy as np
+import time
 """
 Functions for evaluating a DKF object
 """

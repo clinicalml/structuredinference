@@ -15,15 +15,15 @@ for k in ['dim_observations','dim_actions','data_type']:
     params[k] = dataset[k]
 mapPrint('Options: ',params)
 
-
 if params['use_nade']:
     params['data_type']='binary_nade'
 #Setup VAE Model (or reload from existing savefile)
 start_time = time.time()
-from stinfmodels.dkf import DKF
+from stinfmodel.dkf import DKF
+import stinfmodel.learning as DKF_learn
+import stinfmodel.evaluate as DKF_evaluate
 displayTime('import DKF',start_time, time.time())
 dkf    = None
-import ipdb;ipdb.set_trace()
 
 #Remove from params
 start_time = time.time()
@@ -44,7 +44,7 @@ displayTime('Building dkf',start_time, time.time())
 savef     = os.path.join(params['savedir'],params['unique_id']) 
 print 'Savefile: ',savef
 start_time= time.time()
-savedata = dkf.learn(dataset['train'], dataset['mask_train'], 
+savedata = DKF_learn.learn(dkf, dataset['train'], dataset['mask_train'], 
                                 epoch_start =0 , 
                                 epoch_end = params['epochs'], 
                                 batch_size = params['batch_size'],
@@ -55,9 +55,9 @@ savedata = dkf.learn(dataset['train'], dataset['mask_train'],
                                 replicate_K= params['replicate_K'],
                                 shuffle    = False
                                 )
-displayTime('Running DKF',start_time, time.time())
-savedata['bound_test'] = dkf.evaluateBound(dataset['test'], dataset['mask_test'], batch_size = params['batch_size'])
-#Save file log file
+displayTime('Running DKF',start_time, time.time()         )
+savedata['bound_test'] = DKF_evaluate.evaluateBound(dkf, dataset['test'], dataset['mask_test'], batch_size = params['batch_size'], S=2)
+savedata['likelihood_test'] = DKF_evaluate.impSamplingNLL(dkf, dataset['test'], dataset['mask_test'], S = 2, batch_size = params['batch_size'])
 saveHDF5(savef+'-final.h5',savedata)
 print 'Test Bound: ',savedata['bound_test']
 import ipdb;ipdb.set_trace()
