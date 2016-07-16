@@ -247,6 +247,7 @@ class DKF(BaseModel, object):
             ([_, _, sampled_params], _) = theano.scan(NADESample,
                                                    sequences=[W, V, b],
                                                    outputs_info=[a0, x0,None])
+            #import ipdb;ipdb.set_trace()
             """
             def NADEDensityAndSample(x, w, v, b, 
                                      a_prev,   x_prev, 
@@ -595,20 +596,5 @@ if __name__=='__main__':
     else:
         params['data_type'] = 'binary'
     params['dim_observations']  = 10
-    import os,sys
-    tmp_stdout = sys.stdout
-    f = open(os.devnull, 'w')
-    sys.stdout = f
-    success = None
-    try:
-        dkf = DKF(params, paramFile = 'tmp')
-        success = True
-    except:
-        success = False
-    f.close()
-    sys.stdout = tmp_stdout
-    if success:
-        print 'SUCCESS'
-    else:
-        print 'FAILURE'
+    dkf = DKF(params, paramFile = 'tmp')
     os.unlink('tmp')
