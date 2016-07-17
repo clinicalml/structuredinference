@@ -550,12 +550,12 @@ class DKF(BaseModel, object):
             #Add annealing updates
             optimizer_up +=anneal_update+self.updates
             self._p(str(len(self.updates))+' other updates')
-            self.updates_ack = True
             ############# Setup train & evaluate functions ###########
             self.train_debug         = theano.function(fxn_inputs,[train_cost,norm_list[0],norm_list[1],
                                                                         norm_list[2],negCLL, TemporalKL, anneal.sum()], 
                                                            updates = optimizer_up, name='Train (with Debug)')
-        
+        #Updates ack
+        self.updates_ack = True
         eval_obs_params, eval_z_q, eval_mu_q, eval_cov_q, eval_mu_prior, eval_cov_prior, \
         eval_mu_trans, eval_cov_trans = self._inferenceAndReconstruction(
                                                           X, eps,

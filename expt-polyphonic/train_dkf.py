@@ -2,7 +2,7 @@ import os,time,sys
 sys.path.append('../')
 from datasets.load import loadDataset
 from parse_args_dkf import params 
-from utils.misc import removeIfExists,createIfAbsent,mapPrint,saveHDF5,displayTime
+from utils.misc import removeIfExists,createIfAbsent,mapPrint,saveHDF5,displayTime,getLowestError
 
 if params['dataset']=='':
     params['dataset']='jsb'
@@ -56,8 +56,19 @@ savedata = DKF_learn.learn(dkf, dataset['train'], dataset['mask_train'],
                                 shuffle    = False
                                 )
 displayTime('Running DKF',start_time, time.time()         )
-savedata['bound_test'] = DKF_evaluate.evaluateBound(dkf, dataset['test'], dataset['mask_test'], batch_size = params['batch_size'], S=2)
-savedata['likelihood_test'] = DKF_evaluate.impSamplingNLL(dkf, dataset['test'], dataset['mask_test'], S = 2, batch_size = params['batch_size'])
+
+"""
+Load the best DKF based on the validation error
+"""
+epochMin, valMin, idxMin = getLowestError(savedata['valid_bound'])
+reloadFile= pfile.replace('-config.pkl','')+'-EP'+str(int(epochMin))+'-params.npz'
+print 'Loading from : ',reloadFile
+params['validate_only'] = True
+dkf_best  = DKF(params, paramFile = pfile, reloadFile = reloadFile)
+additional = {}
+savedata['bound_test_best'] = DKF_evaluate.evaluateBound(dkf_best, dataset['test'], dataset['mask_test'], S = 2, batch_size = params['batch_size'], additional =additional) 
+savedata['bound_tsbn_test_best'] = additional['tsbn_bound']
+savedata['ll_test_best']    = DKF_evaluate.impSamplingNLL(dkf_best, dataset['test'], dataset['mask_test'], S = 2, batch_size = params['batch_size'])
 saveHDF5(savef+'-final.h5',savedata)
 print 'Test Bound: ',savedata['bound_test']
 import ipdb;ipdb.set_trace()

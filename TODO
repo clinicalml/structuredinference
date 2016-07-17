@@ -3,7 +3,6 @@
 -create train.py that loads and runs the dataset [Done]
 -create sh file that calls train. [Done]
 -Made corrections to DKF to fix L/LR/R issue [Done]
-
 Remarks: Uri has tested this section. it runs for him. [Done]
 
 q2) check that synthetic + polyphonic has been merged
@@ -11,7 +10,6 @@ q2) check that synthetic + polyphonic has been merged
 -create sh files [Done]
     -create files for different options [Done] 
 -do the same for synthetic use create experiment to create the necessary sh files [Done]
-
 q3) Create READMEs in each directory [Done]
 
 q3) Reproducing all the results  
@@ -28,6 +26,8 @@ TODO: At the end of the training script, create a small snippet to estimate the 
 TODO: remember that for some of the larger NADE models, due to memory requirements, we have to use smaller models
 Keep this in mind when creating the sh scripts
 This should take ~24 hours. 
+
+Finish up the readme. you need to be able to write all the features of the model. 
 
 Create a file that takes in all the files created and creates the tables that are necessary/used
 
