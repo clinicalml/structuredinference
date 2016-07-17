@@ -1,13 +1,14 @@
-import os,time
+import os,time,sys
+sys.path.append('../')
 import numpy as np
 from datasets.load import loadDataset
-from utils.parse_args_dkf import params 
+from parse_args_dkf import params 
 from utils.misc import removeIfExists,createIfAbsent,mapPrint,saveHDF5,displayTime
 
 params['dim_stochastic'] = 1
 
 if params['dataset']=='':
-    params['dataset']='synthetic2'
+    params['dataset']='synthetic9'
 dataset = loadDataset(params['dataset'])
 params['savedir']+='-'+params['dataset']
 createIfAbsent(params['savedir'])
@@ -20,7 +21,9 @@ mapPrint('Options: ',params)
 
 #Setup VAE Model (or reload from existing savefile)
 start_time = time.time()
-from models.temporal_synthetic import DKF
+from stinfmodel.dkf import DKF
+import stinfmodel.evaluate as DKF_evaluate
+import stinfmodel.learning as DKF_learn
 displayTime('import DKF',start_time, time.time())
 dkf    = None
 
@@ -44,7 +47,7 @@ displayTime('Building dkf',start_time, time.time())
 savef     = os.path.join(params['savedir'],params['unique_id']) 
 print 'Savefile: ',savef
 start_time= time.time()
-savedata = dkf.learn(dataset['train'], dataset['mask_train'], 
+savedata = DKF_learn.learn(dkf, dataset['train'], dataset['mask_train'], 
                                 epoch_start =0 , 
                                 epoch_end = params['epochs'], 
                                 batch_size = params['batch_size'],
@@ -55,7 +58,7 @@ savedata = dkf.learn(dataset['train'], dataset['mask_train'],
                                 replicate_K = 5
                                 )
 displayTime('Running DKF',start_time, time.time())
-savedata['bound_test'] = dkf.evaluateBound(dataset['test'], dataset['mask_test'], batch_size = params['batch_size'])
+savedata['bound_test'] = DKF_evaluate.evaluateBound(dataset['test'], dataset['mask_test'], batch_size = params['batch_size'])
 #Save file log file
 saveHDF5(savef+'-final.h5',savedata)
 print 'Test Upper Bound:: ',savedata['bound_test']

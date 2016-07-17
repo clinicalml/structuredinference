@@ -195,9 +195,9 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using emission function for '+self.params['dataset'])
-            mu       = self.params_synthetic[self.params['dataset']]['obs_fxn'](z)
-            cov      = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['obs_cov']
-            cov.name = 'EmissionLogCov'
+            mu       = params_synthetic[self.params['dataset']]['obs_fxn'](z)
+            cov      = T.ones_like(mu)*params_synthetic[self.params['dataset']]['obs_cov']
+            cov.name = 'EmissionCov'
             return [mu,cov]
         
         if self.params['emission_type']=='mlp':
@@ -279,10 +279,10 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using transition function for '+self.params['dataset'])
-            mu  = self.params_synthetic[self.params['dataset']]['trans_fxn'](z)
-            cov = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['trans_cov']
+            mu  = params_synthetic[self.params['dataset']]['trans_fxn'](z)
+            cov = T.ones_like(mu)*params_synthetic[self.params['dataset']]['trans_cov']
             cov.name = 'TransitionCov'
-            return mu,logcov
+            return mu,cov
         
         if self.params['transition_type']=='simple_gated':
             def mlp(inp, W1,b1,W2,b2, X_prev=None):
@@ -389,13 +389,23 @@ class DKF(BaseModel, object):
             else:
                 state   = hidden_state
             eps_swap    = eps.swapaxes(0,1)
-            #Create empty extra dimension
+            if self.params['dim_stochastic']==1:
+                """
+                TODO: Write to theano authors regarding this issue.
+                Workaround for theano issue: The result of a matrix multiply is a "matrix"
+                even if one of the dimensions is 1. However defining a tensor with one dimension one
+                means theano regards the resulting tensor as a matrix and consequently in the
+                scan as a column. This results in a mismatch in tensor type in input (column)
+                and output (matrix) and throws an error. This is a workaround that preserves
+                type while
+                """
+                z0 = T.zeros((eps_swap.shape[1], self.params['rnn_size']))
+                z0 = T.dot(z0,T.zeros_like(self.tWeights['q_W_mu']))
+            else:
+                z0 = T.zeros((eps_swap.shape[1], self.params['dim_stochastic']))
             rval, _     = theano.scan(structuredApproximation, 
                                     sequences=[state, eps_swap],
-                                    outputs_info=[
-                                    T.alloc(np.asarray(0.,dtype=config.floatX), 
-                                            eps_swap.shape[1], self.params['dim_stochastic']),
-                                            None,None],
+                                    outputs_info=[z0, None,None],
                                     non_sequences=[self.tWeights[k] for k in 
                                                    ['q_W_st_0', 'q_b_st_0']]+
                                                   [self.tWeights[k] for k in 
@@ -432,7 +442,7 @@ class DKF(BaseModel, object):
     
     def _inferenceAndReconstruction(self, X, eps, dropout_prob = 0.):
         """
-        Returns z_q, mu_q and logcov_q
+        Returns z_q, mu_q and cov_q
         """
         self._p('Building with dropout:'+str(dropout_prob))
         embedding         = self._qEmbeddingLayer(X)
@@ -477,7 +487,6 @@ class DKF(BaseModel, object):
         M: mask of size bs x T
         X: target of size bs x T x dim
         """
-        assert self.params['data_type']=='binary' or self.params['data_type']=='binary_nade','binary only'
         if self.params['data_type']=='real':
             mu_p      = obs_params[0]
             cov_p     = obs_params[1]
