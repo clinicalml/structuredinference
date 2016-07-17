@@ -38,7 +38,7 @@ def evaluateBound(dkf, dataset, mask, batch_size,S=2, normalization = 'frame', a
         maxS = S
         bound_sum, tsbn_bound_sum = 0, 0
         for s in range(S):
-            if s%500==0:
+            if s>0 and s%500==0:
                 dkf._p('Done '+str(s))
             eps     = np.random.randn(X.shape[0],maxT,dkf.params['dim_stochastic']).astype(config.floatX)
             batch_vec= dkf.evaluate(X=X, M=M, eps=eps)
@@ -80,7 +80,7 @@ def impSamplingNLL(dkf, dataset, mask, batch_size, S = 2, normalization = 'frame
         maxS = S
         lllist = []
         for s in range(S):
-            if s%500==0:
+            if s>0 and s%500==0:
                 dkf._p('Done '+str(s))
             eps      = np.random.randn(X.shape[0],maxT,
                                        dkf.params['dim_stochastic']).astype(config.floatX)

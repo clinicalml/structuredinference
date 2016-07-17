@@ -195,8 +195,8 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using emission function for '+self.params['dataset'])
-            mu       = params_synthetic[self.params['dataset']]['obs_fxn'](z)
-            cov      = T.ones_like(mu)*params_synthetic[self.params['dataset']]['obs_cov']
+            mu       = self.params_synthetic[self.params['dataset']]['obs_fxn'](z)
+            cov      = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['obs_cov']
             cov.name = 'EmissionCov'
             return [mu,cov]
         
@@ -279,8 +279,8 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using transition function for '+self.params['dataset'])
-            mu  = params_synthetic[self.params['dataset']]['trans_fxn'](z)
-            cov = T.ones_like(mu)*params_synthetic[self.params['dataset']]['trans_cov']
+            mu  = self.params_synthetic[self.params['dataset']]['trans_fxn'](z)
+            cov = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['trans_cov']
             cov.name = 'TransitionCov'
             return mu,cov
         
@@ -502,6 +502,8 @@ class DKF(BaseModel, object):
             return negCLL.sum()
 
     def _buildModel(self):
+        if 'synthetic' in self.params['dataset']:
+            self.params_synthetic = params_synthetic
         """ High level function to build and setup theano functions """
         X      = T.tensor3('X',   dtype=config.floatX)
         eps    = T.tensor3('eps', dtype=config.floatX)
