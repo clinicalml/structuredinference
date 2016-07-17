@@ -5,6 +5,7 @@ Author: Rahul G. Krishnan (rahul@cs.nyu.edu)
 This folder contains the scripts to reproduce the synthetic experiments. 
 
 Steps:
+
 """
     Run "python create_expt.py". This will yield a list of settings to run. Run them sequentially/parallel 
     Run the ipython notebook in structuredinference/ipynb/synthetic to obtain the desired plots 
