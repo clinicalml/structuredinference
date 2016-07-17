@@ -10,7 +10,7 @@ q2) check that synthetic + polyphonic has been merged
 -compile check <- checking against all options for polyphonic & synthetic  [Done]
 -create sh files [Done]
     -create files for different options [Done] 
--do the same for synthetic use create experiment to create the necessary sh files
+-do the same for synthetic use create experiment to create the necessary sh files [Done]
 -once you've verified that everything compiles -> set everything to run. 
 
 q3) Reproducing Results 
