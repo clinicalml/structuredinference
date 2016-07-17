@@ -1,11 +1,9 @@
-#Implementation of Deep Kalman Filter
+## Modeling Polyphonic Music with a Deep Kalman Filter
+Author: Rahul G. Krishnan (rahul@cs.nyu.edu)
 
-Rahul G. Krishnan
-rahul@cs.nyu.edu
+## Reproducing Numbers in the Paper
 
-The file dkf_polyphonic.py contains the implementation of both inference and generative models for deep kalman filters
-
-
+## Running on your data
 DKF
 Standard Deep Kalman Filter. The default inference algorithm is set to be ST-R (see paper for more details) although
 this can be modified through a variety of knobs primarily the -inference_model and the -var_model hyperparameters. 

@@ -11,17 +11,18 @@ q2) check that synthetic + polyphonic has been merged
 -create sh files [Done]
     -create files for different options [Done] 
 -do the same for synthetic use create experiment to create the necessary sh files [Done]
--once you've verified that everything compiles -> set everything to run. 
 
-q3) Reproducing Results 
+q3) Create READMEs in each directory [Done]
+
+q3) Reproducing all the results  
 
 1) Synthetic experiments 
-S2/S9
-
 2) Polyphonic
-For the polyphonic experiments, look into
+
 
 Additional TODO
+---------------
+For the polyphonic experiments, look into
 TODO: This includes doing a ****sperate**** run with the *** fixed *** NADE
 TODO: At the end of the training script, create a small snippet to estimate the lower bound at test time w/ 1000 samples from the recognition distribution
 TODO: remember that for some of the larger NADE models, due to memory requirements, we have to use smaller models
@@ -29,10 +30,8 @@ Keep this in mind when creating the sh scripts
 This should take ~24 hours. 
 
 Create a file that takes in all the files created and creates the tables that are necessary/used
+
 ipynb/ -> make sure the ipython notebook creates the synthetic plots as in the paper
-
-
--Currently train.py has S=2 for speed. set this back
 
 Aaaaand you're done
 --------------------------------------
