@@ -14,7 +14,5 @@ Steps:
 
 The synthetic datasets are located in the theanomodels repository. See theanomodels/datasets/synthp.py 
 * The file defines a dictionary, one entry for every synthetic dataset
-* Each dataset's parameters are contained within sub-dictionaries. This includes the initial mean/covariance for the transition distribution, the fixed covariance for the emission distribution as well as the emission and transition functions.
-* At model creation, this dictionary is embedded into the DKF and use to create the fixed parameters for the generative model
-for which inference will be performed. 
-* theanomodels/datasets/synthpTheano.py contains the theano implementations of the emission and transition distributions in the generative model 
+* Each dataset's parameters are contained within sub-dictionaries. This includes the initial mean/covariance for the transition distribution, the fixed covariance for the emission distribution as well as the emission and transition functions. (params_synthetic['synthetic9'] is a dict with keys such as trans_fxn, emis_fxn, init_cov etc. trans_fxn, emis_fxn are pointers to functions)
+* At model creation, this dictionary is embedded into the DKF and use to create the transition and emission function for the generative model. The DKF directly uses the theano implementations of the transition and emission functions in (theanomodels/datasets/synthpTheano.py)
