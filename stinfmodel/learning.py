@@ -23,12 +23,11 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
     idxlist   = range(N)
     batchlist = np.split(idxlist, range(batch_size,N,batch_size))
 
-    bound_train_list,bound_valid_list,bound_tsbn_list = [],[],[]
+    bound_train_list,bound_valid_list,bound_tsbn_list,nll_valid_list = [],[],[],[]
     p_norm, g_norm, opt_norm = None, None, None
 
-    #Lists used to track quantities
-    mu_list_train, cov_list_train, mu_list_valid, cov_list_valid, nll_valid_list = [],[],[],[],[]
-    current_lr = dkf.params['lr']
+    #Lists used to track quantities for synthetic experiments
+    mu_list_train, cov_list_train, mu_list_valid, cov_list_valid = [],[],[],[]
 
     #Start of training loop
     for epoch in range(epoch_start, epoch_end):
@@ -50,7 +49,8 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             #Tack on 0's if the matrix size (optimization->theano doesnt have to redefine matrices)
             if X.shape[0]<batch_size:
                 Nremaining = int(batch_size-X.shape[0])
-                X   = np.concatenate([X,np.zeros((Nremaining,X.shape[1],X.shape[2]))],axis=0).astype(config.floatX)
+                X   = np.concatenate([X,np.zeros((Nremaining,X.shape[1],
+                                                  X.shape[2]))],axis=0).astype(config.floatX)
                 M   = np.concatenate([M,np.zeros((Nremaining,X.shape[1]))],axis=0).astype(config.floatX)
 
             #Reduce the dimensionality of the tensors based on the maximum size of the mask
@@ -88,8 +88,8 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             assert False,'Invalid normalization'
         bound_train_list.append((epoch,bound))
         end_time   = time.time()
-        dkf._p(('(Ep %d) Bound: %.4f , LR: %.4e[Took %.4f seconds] ')%(epoch, bound,current_lr, end_time-start_time))
-
+        dkf._p(('(Ep %d) Bound: %.4f [Took %.4f seconds] ')%(epoch, bound, end_time-start_time))
+        
         #Save at intermediate stages
         if savefreq is not None and epoch%savefreq==0:
             assert savefile is not None, 'expecting savefile'
@@ -100,15 +100,27 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             if dataset_eval is not None and mask_eval is not None:
                 tmpMap = {}
                 bound_valid_list.append(
-                    (epoch, DKF_evaluate.evaluateBound(dkf, dataset_eval, mask_eval, batch_size=batch_size, 
+                    (epoch, 
+                     DKF_evaluate.evaluateBound(dkf, dataset_eval, mask_eval, batch_size=batch_size, 
                                               additional = tmpMap, normalization=normalization)))
                 bound_tsbn_list.append((epoch, tmpMap['tsbn_bound']))
-                nll_valid_list.append(DKF_evaluate.impSamplingNLL(dkf, dataset_eval, mask_eval, batch_size,
+                nll_valid_list.append(
+                    DKF_evaluate.impSamplingNLL(dkf, dataset_eval, mask_eval, batch_size,
                                                                   normalization=normalization))
             intermediate['valid_bound'] = np.array(bound_valid_list)
             intermediate['train_bound'] = np.array(bound_train_list)
             intermediate['tsbn_bound']  = np.array(bound_tsbn_list)
             intermediate['valid_nll']  = np.array(nll_valid_list)
+            if 'synthetic' in dkf.params['dataset']:
+                mu_train, cov_train, mu_valid, cov_valid = _syntheticProc(dkf, dataset, dataset_eval)
+                mu_list_train.append(mu_train)
+                cov_list_train.append(cov_train)
+                mu_list_valid.append(mu_valid)
+                cov_list_valid.append(cov_valid)
+                intermediate['mu_posterior_train']  = np.concatenate(mu_list_train, axis=2)
+                intermediate['cov_posterior_train'] = np.concatenate(cov_list_train, axis=2)
+                intermediate['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
+                intermediate['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
             saveHDF5(savefile+'-EP'+str(epoch)+'-stats.h5', intermediate)
     #Final information to be collected
     retMap = {}
@@ -129,12 +141,12 @@ def _syntheticProc(dkf, dataset, dataset_eval):
     """
     allmus, alllogcov = [], []
     for s in range(100):
-        _,mus, logcov = dkf.infer(dataset)
+        _,mus, logcov = DKF_evaluate.infer(dkf,dataset)
         allmus.append(np.copy(mus))
         alllogcov.append(np.copy(logcov))
     allmus_v, alllogcov_v = [], []
     for s in range(100):
-        _,mus, logcov = dkf.infer(np.copy(dataset_eval))
+        _,mus, logcov = DKF_evaluate.infer(dkf,np.copy(dataset_eval))
         allmus_v.append(np.copy(mus))
         alllogcov_v.append(np.copy(logcov))
 

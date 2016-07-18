@@ -8,7 +8,7 @@ parser.add_argument("-s",'--onScreen', type=bool, default=False,help ='create co
 args = parser.parse_args()
 np.random.seed(1)
 ## Standard checks
-var_model       = ['lstmlr','lstm','lstmr']
+var_model       = ['LR','L','R']
 inference_model = ['mean_field','structured']
 optimization    = ['adam']
 lr              = ['0.0008']

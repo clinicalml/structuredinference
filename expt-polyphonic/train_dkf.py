@@ -68,7 +68,7 @@ dkf_best  = DKF(params, paramFile = pfile, reloadFile = reloadFile)
 additional = {}
 savedata['bound_test_best'] = DKF_evaluate.evaluateBound(dkf_best, dataset['test'], dataset['mask_test'], S = 2, batch_size = params['batch_size'], additional =additional) 
 savedata['bound_tsbn_test_best'] = additional['tsbn_bound']
-savedata['ll_test_best']    = DKF_evaluate.impSamplingNLL(dkf_best, dataset['test'], dataset['mask_test'], S = 2, batch_size = params['batch_size'])
+savedata['ll_test_best']    = DKF_evaluate.impSamplingNLL(dkf_best, dataset['test'], dataset['mask_test'], S = 2000, batch_size = params['batch_size'])
 saveHDF5(savef+'-final.h5',savedata)
 print 'Test Bound: ',savedata['bound_test_best'],savedata['bound_tsbn_test_best'],savedata['ll_test_best']
 import ipdb;ipdb.set_trace()

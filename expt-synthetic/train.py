@@ -58,10 +58,8 @@ savedata = DKF_learn.learn(dkf, dataset['train'], dataset['mask_train'],
                                 replicate_K = 5
                                 )
 displayTime('Running DKF',start_time, time.time())
-savedata['bound_test'] = DKF_evaluate.evaluateBound(dataset['test'], dataset['mask_test'], batch_size = params['batch_size'])
 #Save file log file
 saveHDF5(savef+'-final.h5',savedata)
-print 'Test Upper Bound:: ',savedata['bound_test']
 
 #On the validation set, estimate the MSE 
 def estimateMSE(self):
@@ -70,7 +68,7 @@ def estimateMSE(self):
 allmus,alllogcov=[],[]
 
 for s in range(50):
-    _,mus, logcov = dkf.infer(dataset['valid'])
+    _,mus, logcov = DKF_evaluate.infer(dkf,dataset['valid'])
     allmus.append(mus)
     alllogcov.append(logcov)
 mean_mus = np.concatenate([mus[:,:,:,None] for mus in allmus],axis=3).mean(3)
@@ -79,4 +77,4 @@ corrlist = []
 for n in range(mean_mus.shape[0]):
     corrlist.append(np.corrcoef(mean_mus[n,:].ravel(),dataset['valid_z'][n,:].ravel())[0,1])
 print 'Validation Correlation with with True Zs: ',np.mean(corrlist)
-import ipdb;ipdb.set_trace()
+#import ipdb;ipdb.set_trace()
