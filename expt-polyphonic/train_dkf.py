@@ -56,7 +56,6 @@ savedata = DKF_learn.learn(dkf, dataset['train'], dataset['mask_train'],
                                 shuffle    = False
                                 )
 displayTime('Running DKF',start_time, time.time()         )
-
 """
 Load the best DKF based on the validation error
 """
