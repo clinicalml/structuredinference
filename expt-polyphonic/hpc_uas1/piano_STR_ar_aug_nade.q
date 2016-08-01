@@ -17,4 +17,4 @@ module load cudnn/7.0
 
 RUNDIR=$SCRATCH/mlmodels/expt-polyphonic
 cd $RUNDIR
-THEANO_FLAGS="lib.cnmem=1.,scan.allow_gc=False,compiledir_format=gpu0" python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -usenade -dset piano-sorted
+THEANO_FLAGS="lib.cnmem=1.,scan.allow_gc=False,compiledir_format=gpu0" python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -usenade -dset piano-sorted  -bs 10 -dh 100 -ds 50
