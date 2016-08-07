@@ -15,6 +15,6 @@ module load hdf5/intel/1.8.12
 module load cuda/7.5.18
 module load cudnn/7.0
 
-RUNDIR=$SCRATCH/mlmodels/expt-polyphonic
+RUNDIR=$SCRATCH/structuredinference/expt-polyphonic
 cd $RUNDIR
 THEANO_FLAGS="lib.cnmem=0.9,scan.allow_gc=False,compiledir_format=compiledir_format=compiledir_%(platform)s-%(processor)s-%(python_version)s-%(python_bitwidth)s-1" python train_dkf.py -vm LR -infm mean_field -dset piano-sorted
