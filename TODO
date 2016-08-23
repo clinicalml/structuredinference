@@ -1,14 +1,6 @@
 1) check that a simple template can be run [Done]
--create load dataset [Done]
--create train.py that loads and runs the dataset [Done]
--create sh file that calls train. [Done]
--Made corrections to DKF to fix L/LR/R issue [Done]
-Remarks: Uri has tested this section. it runs for him. [Done]
 
 q2) check that synthetic + polyphonic has been merged
--compile check <- checking against all options for polyphonic & synthetic  [Done]
--create sh files [Done]
-    -create files for different options [Done] 
 -do the same for synthetic use create experiment to create the necessary sh files [Done]
 q3) Create READMEs in each directory [Done]
 

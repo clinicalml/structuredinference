@@ -25,6 +25,8 @@ import stinfmodel.evaluate as DKF_evaluate
 displayTime('import DKF',start_time, time.time())
 dkf    = None
 
+import ipdb;ipdb.set_trace()
+
 #Remove from params
 start_time = time.time()
 removeIfExists('./NOSUCHFILE')

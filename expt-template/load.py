@@ -4,7 +4,7 @@ import numpy as np
 """
 def loadDataset():
     dataset = {}
-    Ntrain, Nvalid, Ntest = 10000,500,500
+    Ntrain, Nvalid, Ntest = 3000,100,100
     T , dim_observations  = 100,40
     dataset['train']      = (np.random.randn(Ntrain,T, dim_observations)>0)*1.
     dataset['mask_train'] = np.ones((Ntrain,T))
