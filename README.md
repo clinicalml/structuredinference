@@ -7,6 +7,7 @@ The inference model is based on the idea of a recognition or [inference network.
 
 ## Model
 The figure below describes a simple model of time-series data.
+
 This method would be a good fit to perform inference and learning within your model when:
 * You have enough training examples to learn the generative model
 * You would like to have a method for fast posterior inference at train and test time 
