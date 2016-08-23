@@ -55,19 +55,19 @@ Once the requirements have been met, clone this repository and it's ready to run
 
 ### Folder Structure
 The following folders contain code to reproduct the results reported in our paper:
-* expt-synthetic, expt-polyphonic: Contains code and instructions for reproducing results. 
+* expt-synthetic, expt-polyphonic: Contains code and instructions for reproducing results from the paper.
 * baselines/: Contains to run some of the baseline algorithms on the synthetic data
-* ipynb/: Ipython notebooks for evaluation and building plots
+* ipynb/: Ipython notebooks for visualizing saved checkpoints and building plots
 
 The main files of interest are:
-* parse_args_dkf.py: Contains the list of arguments that the model expects to be present. Looking through it is useful to understand the different knobs available to tune the model. 
-* stinfmodel/dkf.py: Contains the code to construct the inference and generative model. The code is commented and should be readable.
-* stinfmodel/evaluate.py: Contains code to evaluate the Deep Kalman Filter's performance during learning.
+* parse_args_dkf.py: Arguments that the model expects to be present. Looking through it is useful to understand the different knobs available to tune the model. 
+* stinfmodel/dkf.py: Code to construct the inference and generative model. The code is commented to enable easy modification for different scenarios.
+* stinfmodel/evaluate.py: Code to evaluate the Deep Kalman Filter's performance during learning.
 * stinfmodel/learning.py: Code for performing stochastic gradient ascent in the Evidence Lower Bound. 
 
 ## Dataset
 
-We use numpy tensors to store the datasets with binary numpy masks to allow batch sizes comprising sequences of variable length. We train the models using mini-batch gradient descent on -ELBO. 
+We use numpy tensors to store the datasets with binary numpy masks to allow batch sizes comprising sequences of variable length. We train the models using mini-batch gradient descent on negative ELBO. 
 
 ### Format 
 
@@ -89,14 +89,11 @@ dataset['mask_valid'] # N_valid x T_valid_max : test masks
 dataset['data_type'] # real/binary
 dataset['has_masks'] # true/false
 ```
-
 During learning, we select a minibatch of these tensors to update the weights of the model. 
-
 
 ### Running on different datasets
 
-**See the folder expt-template for an example of how to create and run the code on your data**
-
+**See the folder expt-template for an example of how to setup your data and run the code on your data**
 
 ## References: 
 ```
