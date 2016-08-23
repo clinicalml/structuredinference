@@ -3,19 +3,19 @@ Structured Inference Networks for [Deep Kalman Filters](http://arxiv.org/abs/151
 
 ## Goal
 The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
-The inference model is based on the idea of a recognition or [inference network.](https://arxiv.org/abs/1401.4082)
+Inference during learning and at test time is based on compiled recognition or [inference network.](https://arxiv.org/abs/1401.4082)
 
 ## Model
 The figure below describes a simple model of time-series data.
 
-This method would be a good fit to perform inference and learning within your model when:
-* You have enough training examples to learn the generative model
+This method is a good fit if: 
+* You have an arbitrarily specified state space model whose parameters you're interested in fitting. 
 * You would like to have a method for fast posterior inference at train and test time 
 * Your temporal generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables).
 
 ![DKF](images/dkf.png?raw=true "Deep Kalman Filter")
 
-The code learns the model by optimizing the variational lower bound.
+The code uses variational inference during learning to maximize the likelihood of the observed data. 
 
 ![ELBO](images/ELBO.png?raw=true width="500" height="70" "Evidence Lower Bound")
 
@@ -23,7 +23,7 @@ The code learns the model by optimizing the variational lower bound.
 
 * The latent variables z1...zT and the observations x1...xT describe the generative process for the data.
 * The figure depicts a state space model for time-varying data. 
-* The emission and transition functions may be pre-specified to have a fixed functional form or be learned as a function parameterized by a deep neural network
+* The emission and transition functions may be pre-specified to have a fixed functional form, a parametric functional form, a function parameterized by a deep neural networks or some combination thereof. 
 
 *Inference Model* 
 
@@ -96,7 +96,6 @@ During learning, we select a minibatch of these tensors to update the weights of
 ### Running on different datasets
 
 **See the folder expt-template for an example of how to create and run the code on your data**
-
 
 
 ## References: 
