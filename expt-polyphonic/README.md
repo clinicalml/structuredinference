@@ -3,10 +3,10 @@ Author: Rahul G. Krishnan (rahul@cs.nyu.edu)
 
 ## Reproducing Numbers in the Paper
 ```
-Run jsb_expts.sh to run all the JSB experiments.
+Run [dataset]_expts.sh to run the experiments on the polyphonic datasets
 ```
 
-## Running on your data
+## Model Details
 DKF
 Standard Deep Kalman Filter. The default inference algorithm is set to be ST-R (see paper for more details) although
 this can be modified through a variety of knobs primarily the -inference_model and the -var_model hyperparameters. 

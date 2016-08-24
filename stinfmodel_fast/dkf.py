@@ -32,20 +32,6 @@ class DKF(BaseModel, object):
         assert self.params['nonlinearity']!='maxout','Maxout nonlinearity not supported'
 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#
-    def _fakeData(self):
-        """ Fake data for tag testing """
-        T = 3
-        N = 2
-        mask = np.random.random((N,T)).astype(config.floatX)
-        small = mask<0.5
-        large = mask>=0.5
-        mask[small] = 0.
-        mask[large]= 1.
-        eps  = np.random.randn(N,T,self.params['dim_stochastic']).astype(config.floatX)
-        X    = np.random.randn(N,T,self.params['dim_observations']).astype(config.floatX)
-        return X ,mask, eps
-    
-    #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#
     def _createParams(self):
         """ Model parameters """
         npWeights = OrderedDict()
@@ -347,7 +333,7 @@ class DKF(BaseModel, object):
         self._p(('Done <_buildLSTM> [Took %.4f]')%(time.time()-start_time))
         
     
-    def _inferenceLayer(self, hidden_state, eps):
+    def _inferenceLayer(self, hidden_state):
         """
         Take input of T x bs x dim and return z, mu, 
         sq each of size (bs x T x dim) 
@@ -380,7 +366,7 @@ class DKF(BaseModel, object):
                 cov_t      = T.nnet.softplus(T.dot(h_next,q_W_cov)+q_b_cov)
                 z_t        = mu_t+T.sqrt(cov_t)*eps_t
                 return z_t, mu_t, cov_t
-        
+        eps         = self.srng.normal(size=(hidden_state.shape[1],hidden_state.shape[0],self.params['dim_stochastic'])) 
         if self.params['inference_model']=='structured':
             #Structured recognition networks
             if self.params['var_model']=='LR':
@@ -396,7 +382,7 @@ class DKF(BaseModel, object):
                 means theano regards the resulting tensor as a matrix and consequently in the
                 scan as a column. This results in a mismatch in tensor type in input (column)
                 and output (matrix) and throws an error. This is a workaround that preserves
-                type while
+                type while not affecting dimensions
                 """
                 z0 = T.zeros((eps_swap.shape[1], self.params['rnn_size']))
                 z0 = T.dot(z0,T.zeros_like(self.tWeights['q_W_mu']))
@@ -439,14 +425,14 @@ class DKF(BaseModel, object):
         return self._LinearNL(self.tWeights['q_W_input_0'],self.tWeights['q_b_input_0'], X)
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
     
-    def _inferenceAndReconstruction(self, X, eps, dropout_prob = 0.):
+    def _inferenceAndReconstruction(self, X, dropout_prob = 0.):
         """
         Returns z_q, mu_q and cov_q
         """
         self._p('Building with dropout:'+str(dropout_prob))
         embedding         = self._qEmbeddingLayer(X)
         hidden_state      = self._buildLSTM(X, embedding, dropout_prob)
-        z_q,mu_q,cov_q    = self._inferenceLayer(hidden_state, eps)
+        z_q,mu_q,cov_q    = self._inferenceLayer(hidden_state)
         
         #Regularize z_q (for train) 
         #if dropout_prob>0.:
@@ -499,15 +485,32 @@ class DKF(BaseModel, object):
             return negCLL
         else:
             return negCLL.sum()
-
+    
+    def resetDataset(self, newX,newM):
+        ddim,mdim = self.dimData()
+        self._p('Original dim:'+str(ddim)+', '+str(mdim))
+        self.setData(newX=newX.astype(config.floatX),newMask=newM.astype(config.floatX))
+        ddim,mdim = self.dimData()
+        self._p('New dim:'+str(ddim)+', '+str(mdim))
     def _buildModel(self):
         if 'synthetic' in self.params['dataset']:
             self.params_synthetic = params_synthetic
         """ High level function to build and setup theano functions """
-        X      = T.tensor3('X',   dtype=config.floatX)
-        eps    = T.tensor3('eps', dtype=config.floatX)
-        M      = T.matrix('M', dtype=config.floatX)
-        X.tag.test_value, M.tag.test_value, eps.tag.test_value   = self._fakeData()
+        #X      = T.tensor3('X',   dtype=config.floatX)
+        #eps    = T.tensor3('eps', dtype=config.floatX)
+        #M      = T.matrix('M', dtype=config.floatX)
+        idx                = T.vector('idx',dtype='int64')
+        idx.tag.test_value = np.array([0,1]).astype('int64')
+        self.dataset       = theano.shared(np.random.uniform(0,1,size=(3,5,self.params['dim_observations'])).astype(config.floatX))
+        self.mask          = theano.shared(np.array(([[1,1,1,1,0],[1,1,0,0,0],[1,1,1,0,0]])).astype(config.floatX))
+        X_o                = self.dataset[idx]
+        M_o                = self.mask[idx]
+        maxidx             = T.cast(M_o.sum(1).max(),'int64')
+        X                  = X_o[:,:maxidx,:]
+        M                  = M_o[:,:maxidx]
+        newX,newMask       = T.tensor3('newX',dtype=config.floatX),T.matrix('newMask',dtype=config.floatX)
+        self.setData       = theano.function([newX,newMask],None,updates=[(self.dataset,newX),(self.mask,newMask)])
+        self.dimData       = theano.function([],[self.dataset.shape,self.mask.shape])
         
         #Learning Rates and annealing objective function
         #Add them to npWeights/tWeights to be tracked [do not have a prefix _W or _b so wont be diff.]
@@ -526,13 +529,12 @@ class DKF(BaseModel, object):
             anneal_div = 100.
         anneal_update  = [(iteration_t, iteration_t+1),
                           (anneal,T.switch(0.01+iteration_t/anneal_div>1,1,0.01+iteration_t/anneal_div))]
-        fxn_inputs = [X, M, eps]
+        fxn_inputs = [idx]
         if not self.params['validate_only']:
             print '****** CREATING TRAINING FUNCTION*****'
             ############# Setup training functions ###########
             obs_params, z_q, mu_q, cov_q, mu_prior, cov_prior, _, _ = self._inferenceAndReconstruction( 
-                                                              X, eps,
-                                                              dropout_prob = self.params['rnn_dropout'])
+                                                              X, dropout_prob = self.params['rnn_dropout'])
             negCLL = self._getNegCLL(obs_params, X, M)
             TemporalKL = self._getTemporalKL(mu_q, cov_q, mu_prior, cov_prior, M)
             train_cost = negCLL+anneal*TemporalKL
@@ -556,9 +558,7 @@ class DKF(BaseModel, object):
         #Updates ack
         self.updates_ack = True
         eval_obs_params, eval_z_q, eval_mu_q, eval_cov_q, eval_mu_prior, eval_cov_prior, \
-        eval_mu_trans, eval_cov_trans = self._inferenceAndReconstruction(
-                                                          X, eps,
-                                                          dropout_prob = 0.)
+        eval_mu_trans, eval_cov_trans = self._inferenceAndReconstruction(X,dropout_prob = 0.)
         eval_z_q.name = 'eval_z_q'
         eval_CNLLvec=self._getNegCLL(eval_obs_params, X, M, batchVector = True)
         eval_KLvec  = self._getTemporalKL(eval_mu_q, eval_cov_q,eval_mu_prior, eval_cov_prior, M, batchVector = True)
@@ -592,7 +592,7 @@ class DKF(BaseModel, object):
         else:
             self.emission_fxn = theano.function(emission_inputs, 
                                                 eval_obs_params[0], name='Emission Function')
-        self.posterior_inference = theano.function([X, eps], 
+        self.posterior_inference = theano.function(fxn_inputs, 
                                                    [eval_z_q, eval_mu_q, eval_logcov_q],
                                                    name='Posterior Inference') 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
@@ -606,3 +606,4 @@ if __name__=='__main__':
     params['dim_observations']  = 10
     dkf = DKF(params, paramFile = 'tmp')
     os.unlink('tmp')
+    import ipdb;ipdb.set_trace()
