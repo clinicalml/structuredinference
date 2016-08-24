@@ -96,7 +96,7 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             intermediate['tsbn_bound']  = np.array(bound_tsbn_list)
             intermediate['valid_nll']  = np.array(nll_valid_list)
             if 'synthetic' in dkf.params['dataset']:
-                mu_train, cov_train, mu_valid, cov_valid = _syntheticProc(dkf, dataset, dataset_eval)
+                mu_train, cov_train, mu_valid, cov_valid = _syntheticProc(dkf, dataset,mask, dataset_eval,mask_eval)
                 mu_list_train.append(mu_train)
                 cov_list_train.append(cov_train)
                 mu_list_valid.append(mu_valid)
@@ -107,6 +107,7 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
                 intermediate['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
             saveHDF5(savefile+'-EP'+str(epoch)+'-stats.h5', intermediate)
             ### Update X in the computational flow_graph to point to training data
+            import ipdb;ipdb.set_trace()
             dkf.resetDataset(dataset, mask)
     #Final information to be collected
     retMap = {}
@@ -121,16 +122,18 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
         retMap['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
     return retMap
 
-def _syntheticProc(dkf, dataset, dataset_eval):
+def _syntheticProc(dkf, dataset, mask, dataset_eval, mask_eval):
     """
         Collect statistics on the synthetic dataset
     """
     allmus, alllogcov = [], []
+    dkf.resetDataset(dataset, mask) 
     for s in range(100):
         _,mus, logcov = DKF_evaluate.infer(dkf,dataset)
         allmus.append(np.copy(mus))
         alllogcov.append(np.copy(logcov))
     allmus_v, alllogcov_v = [], []
+    dkf.resetDataset(dataset_eval, mask_eval) 
     for s in range(100):
         _,mus, logcov = DKF_evaluate.infer(dkf,np.copy(dataset_eval))
         allmus_v.append(np.copy(mus))
