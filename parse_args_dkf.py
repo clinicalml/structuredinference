@@ -88,6 +88,8 @@ for k in hmap:
             combined+=hmap[k]+'-'+('%.4e')%(params[k])+'-'
         else:
             combined+=hmap[k]+'-'+str(params[k])+'-'
+
+params['expt_name'] = params['unique_id']
 params['unique_id'] = combined[:-1]+'-'+params['unique_id']
 params['unique_id'] = 'DKF_'+params['unique_id'].replace('.','_')
 """
