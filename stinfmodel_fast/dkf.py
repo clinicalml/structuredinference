@@ -367,7 +367,10 @@ class DKF(BaseModel, object):
                 cov_t      = T.nnet.softplus(T.dot(h_next,q_W_cov)+q_b_cov)
                 z_t        = mu_t+T.sqrt(cov_t)*eps_t
                 return z_t, mu_t, cov_t
-        eps         = self.srng.normal(size=(hidden_state.shape[1],hidden_state.shape[0],self.params['dim_stochastic'])) 
+        if type(hidden_state) is list:
+            eps         = self.srng.normal(size=(hidden_state[0].shape[1],hidden_state[0].shape[0],self.params['dim_stochastic'])) 
+        else:
+            eps         = self.srng.normal(size=(hidden_state.shape[1],hidden_state.shape[0],self.params['dim_stochastic'])) 
         if self.params['inference_model']=='structured':
             #Structured recognition networks
             if self.params['var_model']=='LR':

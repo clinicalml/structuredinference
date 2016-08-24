@@ -1,15 +1,10 @@
-1) check that a simple template can be run [Done]
-
+q1) check that a simple template can be run [Done]
 q2) check that synthetic + polyphonic has been merged
--do the same for synthetic use create experiment to create the necessary sh files [Done]
 q3) Create READMEs in each directory [Done]
-
-q3) Reproducing all the results  
-
+q4) Reproducing all the results  
 1) Synthetic experiments 
 2) Polyphonic
-
-
+---------------
 Additional TODO
 ---------------
 For the polyphonic experiments, look into
@@ -17,7 +12,6 @@ TODO: This includes doing a ****sperate**** run with the *** fixed *** NADE
 TODO: At the end of the training script, create a small snippet to estimate the lower bound at test time w/ 1000 samples from the recognition distribution
 TODO: remember that for some of the larger NADE models, due to memory requirements, we have to use smaller models
 Keep this in mind when creating the sh scripts
-This should take ~24 hours. 
 
 Finish up the readme. you need to be able to write all the features of the model. 
 
