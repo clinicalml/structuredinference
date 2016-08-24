@@ -490,12 +490,14 @@ class DKF(BaseModel, object):
         else:
             return negCLL.sum()
     
-    def resetDataset(self, newX,newM):
-        ddim,mdim = self.dimData()
-        self._p('Original dim:'+str(ddim)+', '+str(mdim))
+    def resetDataset(self, newX,newM,quiet=False):
+        if not quiet:
+            ddim,mdim = self.dimData()
+            self._p('Original dim:'+str(ddim)+', '+str(mdim))
         self.setData(newX=newX.astype(config.floatX),newMask=newM.astype(config.floatX))
-        ddim,mdim = self.dimData()
-        self._p('New dim:'+str(ddim)+', '+str(mdim))
+        if not quiet:
+            ddim,mdim = self.dimData()
+            self._p('New dim:'+str(ddim)+', '+str(mdim))
     def _buildModel(self):
         if 'synthetic' in self.params['dataset']:
             self.params_synthetic = params_synthetic

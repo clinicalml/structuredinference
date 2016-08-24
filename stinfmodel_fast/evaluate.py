@@ -5,12 +5,12 @@ import time
 """
 Functions for evaluating a DKF object
 """
-def infer(dkf, dataset):
+def infer(dkf, dataset, mask):
     """ Posterior Inference using recognition network 
     Returns: z,mu,logcov (each a 3D tensor) Remember to multiply each by the mask of the dataset before
     using the latent variables
     """
-    dkf.resetDataset(dataset,np.zeros(dataset[:,:,0].shape))
+    dkf.resetDataset(dataset,mask,quiet=True)
     assert len(dataset.shape)==3,'Expecting 3D tensor for data' 
     assert dataset.shape[2]==dkf.params['dim_observations'],'Data dim. not matching'
     return dkf.posterior_inference(idx=np.arange(dataset.shape[0]))
