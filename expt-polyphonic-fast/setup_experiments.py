@@ -60,7 +60,7 @@ all_expts['piano']['ST-R-mlp'] = 'python2.7 train_dkf.py -vm R -infm structured 
 all_expts['piano']['ST-L'] = 'python2.7 train_dkf.py -vm L -infm structured -dset <dataset>'
 all_expts['piano']['DKF-ar'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -dset <dataset>' 
 all_expts['piano']['DKF-aug'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -dset <dataset>'
-all_expts['piano']['DKF-aug-nade'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -usenade -dset <dataset>'
+all_expts['piano']['DKF-aug-nade'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -usenade -dset <dataset> -ds 50 -dh 100 -rs 400'
 
 if onHPC:
     DIR = './hpc_'+dataset
