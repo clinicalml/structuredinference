@@ -68,12 +68,16 @@ if onHPC:
     os.system('mkdir -p '+DIR)
     with open('template.q') as ff:
         template = ff.read()
+    runallcmd    = ''
     for name in all_expts[dataset]:
         runcmd  = all_expts[dataset][name].replace('<dataset>',dataset)+' -uid '+name
         command = THFLAGS.replace('<rand_idx>',str(np.random.randint(4)))+runcmd
         with open(DIR+'/'+name+'.q','w') as f:
             f.write(template.replace('<name>',name).replace('<command>',command))
         print 'Wrote to:',DIR+'/'+name+'.q'
+        runallcmd+= 'qsub '+name+'.q\n'
+    with open(DIR+'/runall.sh','w') as f:
+        f.write(runallcmd)
 else:
     for name in all_expts[dataset]:
         runcmd  = all_expts[dataset][name].replace('<dataset>',dataset)+' -uid '+name
