@@ -8,7 +8,7 @@ import time
 from theano import config
 
 def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000, 
-          batch_size=200, shuffle=False,
+          batch_size=200, shuffle=True,
           savefreq=None, savefile = None, 
           dataset_eval = None, mask_eval = None, 
           replicate_K = None,
