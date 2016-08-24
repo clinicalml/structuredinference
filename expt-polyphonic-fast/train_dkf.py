@@ -57,6 +57,8 @@ savedata = DKF_learn.learn(dkf, dataset['train'], dataset['mask_train'],
                                 shuffle    = False
                                 )
 displayTime('Running DKF',start_time, time.time()         )
+
+dkf = None
 """
 Load the best DKF based on the validation error
 """
@@ -71,4 +73,4 @@ savedata['bound_tsbn_test_best'] = additional['tsbn_bound']
 savedata['ll_test_best']    = DKF_evaluate.impSamplingNLL(dkf_best, dataset['test'], dataset['mask_test'], S = 2000, batch_size = params['batch_size'])
 saveHDF5(savef+'-final.h5',savedata)
 print 'Experiment Name: <',params['expt_name'],'> Test Bound: ',savedata['bound_test_best'],savedata['bound_tsbn_test_best'],savedata['ll_test_best']
-import ipdb;ipdb.set_trace()
+#import ipdb;ipdb.set_trace()
