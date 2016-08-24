@@ -196,12 +196,13 @@ class DKF(BaseModel, object):
         else:
             assert False,'Invalid emission type'
         
-        self._p('TODO: FIX THIS, SHOULD BE LINEAR FOR NADE')
+        #self._p('TODO: FIX THIS, SHOULD BE LINEAR FOR NADE')
         for l in range(self.params['emission_layers']):
             #Do not use a non-linearity in the last layer
-            #if l==self.params['emission_layers']-1:
-            #    hid = T.dot(hid, self.tWeights['p_emis_W_'+str(l)]) + self.tWeights['p_emis_b_'+str(l)]
-            hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)],  self.tWeights['p_emis_b_'+str(l)], hid)
+            if self.params['data_type']=='binary_nade' and l==self.params['emission_layers']-1:
+                hid = T.dot(hid, self.tWeights['p_emis_W_'+str(l)]) + self.tWeights['p_emis_b_'+str(l)]
+            else:
+                hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)],  self.tWeights['p_emis_b_'+str(l)], hid)
         if self.params['data_type']=='binary':
             mean_params=T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
             return [mean_params]
