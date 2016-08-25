@@ -10,6 +10,7 @@ import argparse,os
 parser = argparse.ArgumentParser(description='Setup Expts')
 parser.add_argument('-hpc','--onHPC',action='store_true') 
 parser.add_argument('-dset','--dataset', default='jsb',action='store')
+parser.add_argument('-ngpu','--num_gpus', default=4,action='store',type=int)
 args = parser.parse_args()
 
 #MAIN FLAGS
@@ -70,8 +71,8 @@ if onHPC:
         template = ff.read()
     runallcmd    = ''
     for name in all_expts[dataset]:
-        runcmd  = all_expts[dataset][name].replace('<dataset>',dataset)+' -uid '+name
-        command = THFLAGS.replace('<rand_idx>',str(np.random.randint(4)))+runcmd
+        runcmd  = all_expts[dataset][name].replace('<dataset>',DATASET)+' -uid '+name
+        command = THFLAGS.replace('<rand_idx>',str(np.random.randint(args.num_gpus)))+runcmd
         with open(DIR+'/'+name+'.q','w') as f:
             f.write(template.replace('<name>',name).replace('<command>',command))
         print 'Wrote to:',DIR+'/'+name+'.q'
@@ -80,6 +81,6 @@ if onHPC:
         f.write(runallcmd)
 else:
     for name in all_expts[dataset]:
-        runcmd  = all_expts[dataset][name].replace('<dataset>',dataset)+' -uid '+name
-        command = THFLAGS.replace('<rand_idx>',str(np.random.randint(4)))+runcmd
+        runcmd  = all_expts[dataset][name].replace('<dataset>',DATASET)+' -uid '+name
+        command = THFLAGS.replace('<rand_idx>',str(np.random.randint(args.num_gpus)))+runcmd
         print command
