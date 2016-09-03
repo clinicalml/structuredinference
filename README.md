@@ -44,7 +44,7 @@ Used for automatic differentiations
 
 [theanomodels] (https://github.com/clinicalml/theanomodels) 
 Wrapper around theano that takes care of bookkeeping, saving/loading models etc. Clone the github repository
-and add it to your PATH environment variable so that it is accessible by this package. 
+and add its location to the PYTHONPATH environment variable so that it is accessible by python.
 
 [pykalman] (https://pykalman.github.io/) 
 [Optional: For running baseline UKFs/KFs]
