@@ -75,7 +75,7 @@ savedata['ll_test_best']    = DKF_evaluate.impSamplingNLL(dkf_best, dataset['tes
 saveHDF5(savef+'-final.h5',savedata)
 print 'Experiment Name: <',params['expt_name'],'> Test Bound: ',savedata['bound_test_best'],' ',savedata['bound_tsbn_test_best'],' ',savedata['ll_test_best']
 
-with open(params['dataset']+'results.txt','a') as f:
+with open(params['dataset']+'-results.txt','a') as f:
     while True:
         try:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -85,6 +85,6 @@ with open(params['dataset']+'results.txt','a') as f:
                 raise
             else:
                 time.sleep(0.1)
-    f.write('Experiment Name: <'+params['expt_name']+'> Test Bound: '+str(savedata['bound_test_best'])+str(savedata['bound_tsbn_test_best'])+str(savedata['ll_test_best'])+'\n')
+    f.write('Experiment Name: <'+params['expt_name']+'> Test Bound: '+str(savedata['bound_test_best'])+' '+str(savedata['bound_tsbn_test_best'])+' '+str(savedata['ll_test_best'])+'\n')
     fcntl.flock(f, fcntl.LOCK_UN)
 #import ipdb;ipdb.set_trace()
