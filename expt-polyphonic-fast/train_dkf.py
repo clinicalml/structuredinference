@@ -74,5 +74,5 @@ savedata['ll_test_best']    = DKF_evaluate.impSamplingNLL(dkf_best, dataset['tes
 saveHDF5(savef+'-final.h5',savedata)
 with open('results.txt','a') as f:
     f.write('Experiment Name: <'+params['expt_name']+'> Test Bound: '+str(savedata['bound_test_best'])+str(savedata['bound_tsbn_test_best'])+str(savedata['ll_test_best'])+'\n')
-print 'Experiment Name: <',params['expt_name'],'> Test Bound: ',savedata['bound_test_best'],savedata['bound_tsbn_test_best'],savedata['ll_test_best']
+print 'Experiment Name: <',params['expt_name'],'> Test Bound: ',savedata['bound_test_best'],' ',savedata['bound_tsbn_test_best'],' ',savedata['ll_test_best']
 #import ipdb;ipdb.set_trace()
