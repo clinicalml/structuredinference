@@ -34,7 +34,7 @@ all_expts['jsb']['ST-R-mlp'] = 'python2.7 train_dkf.py -vm R -infm structured -t
 all_expts['jsb']['ST-L'] = 'python2.7 train_dkf.py -vm L -infm structured -dset <dataset>'
 all_expts['jsb']['DKF-ar'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -dset <dataset>' 
 all_expts['jsb']['DKF-aug'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -dset <dataset>'
-all_expts['jsb']['DKF-aug-nade'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -usenade -dset <dataset>'
+all_expts['jsb']['DKF-aug-nade'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -usenade -ar 1000 -dset <dataset>'
 
 all_expts['nottingham']['ST-R'] = 'python2.7 train_dkf.py -vm R -infm structured -dset <dataset>'
 all_expts['nottingham']['MF-LR'] = 'python2.7 train_dkf.py -vm LR -infm mean_field -dset <dataset>'

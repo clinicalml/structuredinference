@@ -198,7 +198,6 @@ class DKF(BaseModel, object):
         
         #self._p('TODO: FIX THIS, SHOULD BE LINEAR FOR NADE')
         for l in range(self.params['emission_layers']):
-            #Do not use a non-linearity in the last layer
             if self.params['data_type']=='binary_nade' and l==self.params['emission_layers']-1:
                 hid = T.dot(hid, self.tWeights['p_emis_W_'+str(l)]) + self.tWeights['p_emis_b_'+str(l)]
             else:

@@ -1,4 +1,5 @@
 import os,time,sys
+import fcntl,errno
 sys.path.append('../')
 from datasets.load import loadDataset
 from parse_args_dkf import params 
@@ -72,7 +73,18 @@ savedata['bound_test_best'] = DKF_evaluate.evaluateBound(dkf_best, dataset['test
 savedata['bound_tsbn_test_best'] = additional['tsbn_bound']
 savedata['ll_test_best']    = DKF_evaluate.impSamplingNLL(dkf_best, dataset['test'], dataset['mask_test'], S = 2000, batch_size = params['batch_size'])
 saveHDF5(savef+'-final.h5',savedata)
-with open('results.txt','a') as f:
-    f.write('Experiment Name: <'+params['expt_name']+'> Test Bound: '+str(savedata['bound_test_best'])+str(savedata['bound_tsbn_test_best'])+str(savedata['ll_test_best'])+'\n')
 print 'Experiment Name: <',params['expt_name'],'> Test Bound: ',savedata['bound_test_best'],' ',savedata['bound_tsbn_test_best'],' ',savedata['ll_test_best']
+
+with open(params['dataset']+'results.txt','a') as f:
+    while True:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except IOError as e:
+            if e.errno != errno.EAGAIN:
+                raise
+            else:
+                time.sleep(0.1)
+    f.write('Experiment Name: <'+params['expt_name']+'> Test Bound: '+str(savedata['bound_test_best'])+str(savedata['bound_tsbn_test_best'])+str(savedata['ll_test_best'])+'\n')
+    fcntl.flock(f, fcntl.LOCK_UN)
 #import ipdb;ipdb.set_trace()
