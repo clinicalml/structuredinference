@@ -52,7 +52,7 @@ all_expts['musedata']['ST-R-mlp'] = 'python2.7 train_dkf.py -vm R -infm structur
 all_expts['musedata']['ST-L'] = 'python2.7 train_dkf.py -vm L -infm structured -dset <dataset>'
 all_expts['musedata']['DKF-ar'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -dset <dataset>' 
 all_expts['musedata']['DKF-aug'] ='python2.7 train_dkf.py -vm R -infm structured -ar 5000 -etype conditional -previnp -dset <dataset>'
-all_expts['musedata']['DKF-aug-nade'] ='python2.7 train_dkf.py -vm R -infm structured -ar 1000 -etype conditional -previnp -usenade -dset <dataset>'
+all_expts['musedata']['DKF-aug-nade'] ='python2.7 train_dkf.py -vm R -infm structured -ar 1000 -etype conditional -previnp -usenade -dset <dataset> -ds 50 -dh 100 -rs 400'
 
 all_expts['piano']['ST-R'] = 'python2.7 train_dkf.py -vm R -infm structured -dset <dataset>'
 all_expts['piano']['MF-LR'] = 'python2.7 train_dkf.py -vm LR -infm mean_field -dset <dataset>'
