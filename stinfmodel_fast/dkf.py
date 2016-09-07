@@ -356,6 +356,7 @@ class DKF(BaseModel, object):
                 mu         = (mu_1*cov_2+mu_2*cov_1)/(cov_1+cov_2)
                 cov        = (cov_1*cov_2)/(cov_1+cov_2)
                 z          = mu + T.sqrt(cov)*eps_t
+                return z, mu, cov
             else:
                 h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
                 if self.params['var_model']=='LR':

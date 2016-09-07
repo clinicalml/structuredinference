@@ -1,5 +1,6 @@
 import os,time,sys
 import fcntl,errno
+import socket
 sys.path.append('../')
 from datasets.load import loadDataset
 from parse_args_dkf import params 
@@ -87,4 +88,6 @@ with open(params['dataset']+'-results.txt','a') as f:
                 time.sleep(0.1)
     f.write('Experiment Name: <'+params['expt_name']+'> Test Bound: '+str(savedata['bound_test_best'])+' '+str(savedata['bound_tsbn_test_best'])+' '+str(savedata['ll_test_best'])+'\n')
     fcntl.flock(f, fcntl.LOCK_UN)
-#import ipdb;ipdb.set_trace()
+
+if 'nyu.edu' in socket.gethostname():
+    import ipdb;ipdb.set_trace()
