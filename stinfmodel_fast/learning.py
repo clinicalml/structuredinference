@@ -28,6 +28,7 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
 
     #Lists used to track quantities for synthetic experiments
     mu_list_train, cov_list_train, mu_list_valid, cov_list_valid = [],[],[],[]
+    model_params = {} 
 
     #Start of training loop
 
@@ -96,15 +97,22 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             intermediate['tsbn_bound']  = np.array(bound_tsbn_list)
             intermediate['valid_nll']  = np.array(nll_valid_list)
             if 'synthetic' in dkf.params['dataset']:
-                mu_train, cov_train, mu_valid, cov_valid = _syntheticProc(dkf, dataset,mask, dataset_eval,mask_eval)
+                mu_train, cov_train, mu_valid, cov_valid, learned_params = _syntheticProc(dkf, dataset,mask, dataset_eval,mask_eval)
                 mu_list_train.append(mu_train)
                 cov_list_train.append(cov_train)
                 mu_list_valid.append(mu_valid)
                 cov_list_valid.append(cov_valid)
+                for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
+                    if k in model_params:
+                        model_params[k].append(learned_params[k])
+                    else:
+                        model_params[k] = [learned_params[k]]
                 intermediate['mu_posterior_train']  = np.concatenate(mu_list_train, axis=2)
                 intermediate['cov_posterior_train'] = np.concatenate(cov_list_train, axis=2)
                 intermediate['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
                 intermediate['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
+                for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
+                    intermediate[k+'_learned'] = np.array(model_params[k]).squeeze() 
             saveHDF5(savefile+'-EP'+str(epoch)+'-stats.h5', intermediate)
             ### Update X in the computational flow_graph to point to training data
             dkf.resetDataset(dataset, mask)
@@ -119,6 +127,8 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
         retMap['cov_posterior_train'] = np.concatenate(cov_list_train, axis=2)
         retMap['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
         retMap['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
+        for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
+            intermediate[k+'_learned'] = np.array(model_params[k]) 
     return retMap
 
 def _syntheticProc(dkf, dataset, mask, dataset_eval, mask_eval):
@@ -140,4 +150,9 @@ def _syntheticProc(dkf, dataset, mask, dataset_eval, mask_eval):
     cov_train= np.exp(np.concatenate(alllogcov,axis=2)).mean(2,keepdims=True)
     mu_valid = np.concatenate(allmus_v,axis=2).mean(2,keepdims=True)
     cov_valid= np.exp(np.concatenate(alllogcov_v,axis=2)).mean(2,keepdims=True)
-    return mu_train, cov_train, mu_valid, cov_valid
+
+    #Extract the learned parameters w/in the generative model
+    learned_params = {} 
+    for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
+        learned_params[k] = dkf.tWeights[k+'_W'].get_value()
+    return mu_train, cov_train, mu_valid, cov_valid, learned_params

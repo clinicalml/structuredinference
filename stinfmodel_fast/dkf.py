@@ -42,8 +42,9 @@ class DKF(BaseModel, object):
     def _createGenerativeParams(self, npWeights):
         """ Create weights/params for generative model """
         if 'synthetic' in self.params['dataset']:
-            for k in params_synthetic[self.params['dataset']]:
-                import ipdb;ipdb.set_trace()
+            updateParamsSynthetic(params_synthetic)
+            self.params_synthetic = params_synthetic
+            for k in self.params_synthetic[self.params['dataset']]['params']:
                 npWeights[k+'_W'] = np.array(0.,dtype=config.floatX) 
             return
         DIM_HIDDEN     = self.params['dim_hidden']
@@ -195,9 +196,8 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using emission function for '+self.params['dataset'])
-            import ipdb;ipdb.set_trace()
             tParams = {}
-            for k in params_synthetic[self.params['dataset']]:
+            for k in self.params_synthetic[self.params['dataset']]['params']:
                 tParams[k] = self.tWeights[k+'_W']
             mu       = self.params_synthetic[self.params['dataset']]['obs_fxn'](z, fxn_params = tParams)
             cov      = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['obs_cov']
@@ -289,9 +289,8 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using transition function for '+self.params['dataset'])
-            import ipdb;ipdb.set_trace()
             tParams = {}
-            for k in params_synthetic[self.params['dataset']]:
+            for k in self.params_synthetic[self.params['dataset']]['params']:
                 tParams[k] = self.tWeights[k+'_W']
             mu  = self.params_synthetic[self.params['dataset']]['trans_fxn'](z, fxn_params = tParams)
             cov = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['trans_cov']

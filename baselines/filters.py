@@ -43,7 +43,7 @@ def runFilter(observations, params, dname, filterType):
 
         model=AdditiveUnscentedKalmanFilter(
                     transition_functions  = trans_fxn, #params[dname]['trans_fxn'],
-                    observation_functions = emis_fxn,  #params[dname]['obs_fxn'],
+                    observation_functions = obs_fxn,  #params[dname]['obs_fxn'],
                     transition_covariance = np.array([params[dname]['trans_cov']]),  #transition cov
                     observation_covariance= np.array([params[dname]['obs_cov']]),  #obs cov
                     initial_state_mean    = np.array([params[dname]['init_mu']]),
