@@ -10,7 +10,7 @@ def infer(dkf, dataset, indicators, actions, mask):
     Returns: z,mu,logcov (each a 3D tensor) Remember to multiply each by the mask of the dataset before
     using the latent variables
     """
-    dkf.resetDataset(dataset,indicators, actions, mask,quiet=True)
+    dkf.resetDataset(dataset, indicators, actions, mask, quiet=True)
     assert len(dataset.shape)==3,'Expecting 3D tensor for data' 
     assert dataset.shape[2]==dkf.params['dim_observations'],'Data dim. not matching'
     return dkf.posterior_inference(idx=np.arange(dataset.shape[0]))
@@ -79,27 +79,5 @@ def impSamplingNLL(dkf, dataset, mask, batch_size, S = 2, normalization = 'frame
     dkf._p(('(Evaluate w/ Imp. Sampling) Validation LL: %.4f [Took %.4f seconds]')%(ll,end_time-start_time))
     return ll
 
-
 def sampleGaussian(dkf,mu,logcov):
         return mu + np.random.randn(*mu.shape)*np.exp(0.5*logcov)
-
-def sample(dkf, nsamples=100, T=10, additional = {}):
-    """
-                                  Sample from Generative Model
-    """
-    assert T>1, 'Sample atleast 2 timesteps'
-    #Initial sample
-    z      = np.random.randn(nsamples,1,dkf.params['dim_stochastic']).astype(config.floatX)
-    all_zs = [np.copy(z)]
-    additional['mu']     = []
-    additional['logcov'] = []
-    for t in range(T-1):
-        mu,logcov = dkf.transition_fxn(z)
-        z           = dkf.sampleGaussian(mu,logcov).astype(config.floatX)
-        all_zs.append(np.copy(z))
-        additional['mu'].append(np.copy(mu))
-        additional['logcov'].append(np.copy(logcov))
-    zvec = np.concatenate(all_zs,axis=1)
-    additional['mu']     = np.concatenate(additional['mu'], axis=1)
-    additional['logcov'] = np.concatenate(additional['logcov'], axis=1)
-    return dkf.emission_fxn(zvec), zvec

@@ -22,10 +22,8 @@ def learn(dkf, dataset, indicators, actions, mask, epoch_start=0, epoch_end=1000
     N = dataset.shape[0]
     idxlist   = range(N)
     batchlist = np.split(idxlist, range(batch_size,N,batch_size))
-
     bound_train_list,bound_valid_list,bound_tsbn_list,nll_valid_list = [],[],[],[]
     p_norm, g_norm, opt_norm = None, None, None
-
     #Set data
     dkf.resetDataset(dataset, indicators, actions, mask)
     for epoch in range(epoch_start, epoch_end):
@@ -52,7 +50,6 @@ def learn(dkf, dataset, indicators, actions, mask, epoch_start=0, epoch_end=1000
         bound_train_list.append((epoch,bound))
         end_time   = time.time()
         dkf._p(('(Ep %d) Bound: %.4f [Took %.4f seconds] ')%(epoch, bound, end_time-start_time))
-        
         if savefreq is not None and epoch%savefreq==0:
             assert savefile is not None, 'expecting savefile'
             dkf._p(('Saving at epoch %d'%epoch))

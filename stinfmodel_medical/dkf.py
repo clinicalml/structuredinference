@@ -564,11 +564,8 @@ class DKF(BaseModel, object):
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
 if __name__=='__main__':
     """ use this to check compilation for various options"""
-    from parse_args_dkf import params
-    if params['use_nade']:
-        params['data_type'] = 'binary_nade'
-    else:
-        params['data_type'] = 'binary'
+    from parse_args_dkf_medical import params
+    params['data_type']         = 'binary'
     params['dim_observations']  = 10
     dkf = DKF(params, paramFile = 'tmp')
     os.unlink('tmp')

@@ -60,21 +60,4 @@ savedata = DKF_learn.learn(dkf, dataset['train'], dataset['mask_train'],
 displayTime('Running DKF',start_time, time.time())
 #Save file log file
 saveHDF5(savef+'-final.h5',savedata)
-
-#On the validation set, estimate the MSE 
-def estimateMSE(self):
-    assert 'synthetic' in self.params['dataset'],'Only valid for synthetic data'
-
-allmus,alllogcov=[],[]
-
-for s in range(50):
-    _,mus, logcov = DKF_evaluate.infer(dkf,dataset['valid'])
-    allmus.append(mus)
-    alllogcov.append(logcov)
-mean_mus = np.concatenate([mus[:,:,:,None] for mus in allmus],axis=3).mean(3)
-print 'Validation MSE: ',np.square(mean_mus-dataset['valid_z']).mean()
-corrlist = []
-for n in range(mean_mus.shape[0]):
-    corrlist.append(np.corrcoef(mean_mus[n,:].ravel(),dataset['valid_z'][n,:].ravel())[0,1])
-print 'Validation Correlation with with True Zs: ',np.mean(corrlist)
 #import ipdb;ipdb.set_trace()
