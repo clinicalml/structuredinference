@@ -42,6 +42,9 @@ class DKF(BaseModel, object):
     def _createGenerativeParams(self, npWeights):
         """ Create weights/params for generative model """
         if 'synthetic' in self.params['dataset']:
+            for k in params_synthetic[self.params['dataset']]:
+                import ipdb;ipdb.set_trace()
+                npWeights[k+'_W'] = np.array(0.,dtype=config.floatX) 
             return
         DIM_HIDDEN     = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
@@ -98,6 +101,17 @@ class DKF(BaseModel, object):
                     dim_input = self.params['dim_stochastic']
                 npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
                 npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
+        elif self.params['emission_type'] == 'res':
+            for l in range(self.params['emission_layers']):
+                dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
+                if l==0:
+                    dim_input = self.params['dim_stochastic']
+                npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
+                npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
+            dim_res_out = self.params['dim_observations']
+            if self.params['data_type']=='binary_nade':
+                dim_res_out = DIM_HIDDEN
+            npWeights['p_res_W'] = self._getWeight((self.params['dim_stochastic'], dim_res_out))
         elif self.params['emission_type'] =='conditional':
             for l in range(self.params['emission_layers']):
                 dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
@@ -181,13 +195,17 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using emission function for '+self.params['dataset'])
-            mu       = self.params_synthetic[self.params['dataset']]['obs_fxn'](z)
+            import ipdb;ipdb.set_trace()
+            tParams = {}
+            for k in params_synthetic[self.params['dataset']]:
+                tParams[k] = self.tWeights[k+'_W']
+            mu       = self.params_synthetic[self.params['dataset']]['obs_fxn'](z, fxn_params = tParams)
             cov      = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['obs_cov']
             cov.name = 'EmissionCov'
             return [mu,cov]
         
-        if self.params['emission_type']=='mlp':
-            self._p('EMISSION TYPE: MLP')
+        if self.params['emission_type'] in ['mlp','res']:
+            self._p('EMISSION TYPE: MLP or RES')
             hid = z
         elif self.params['emission_type']=='conditional':
             self._p('EMISSION TYPE: conditional')
@@ -195,19 +213,25 @@ class DKF(BaseModel, object):
             hid     = T.concatenate([z,X_prev],axis=2)
         else:
             assert False,'Invalid emission type'
-        
-        #self._p('TODO: FIX THIS, SHOULD BE LINEAR FOR NADE')
         for l in range(self.params['emission_layers']):
             if self.params['data_type']=='binary_nade' and l==self.params['emission_layers']-1:
                 hid = T.dot(hid, self.tWeights['p_emis_W_'+str(l)]) + self.tWeights['p_emis_b_'+str(l)]
             else:
                 hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)],  self.tWeights['p_emis_b_'+str(l)], hid)
+            
         if self.params['data_type']=='binary':
-            mean_params=T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
+            if self.params['emission_type']=='res':
+                hid = T.dot(z,self.tWeights['p_res_W'])+T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber']
+                mean_params=T.nnet.sigmoid(hid)
+            else:
+                mean_params=T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
             return [mean_params]
         elif self.params['data_type']=='binary_nade':
             self._p('NADE observations')
             assert X is not None,'Need observations for NADE'
+            if self.params['emission_type']=='res':
+                hid += T.dot(z,self.tWeights['p_res_W'])
+
             x_reshaped   = X.dimshuffle(2,0,1)
             x0 = T.ones((hid.shape[0],hid.shape[1]))#x_reshaped[0]) # bs x T
             a0 = hid #bs x T x nhid
@@ -265,7 +289,11 @@ class DKF(BaseModel, object):
         """
         if 'synthetic' in self.params['dataset']:
             self._p('Using transition function for '+self.params['dataset'])
-            mu  = self.params_synthetic[self.params['dataset']]['trans_fxn'](z)
+            import ipdb;ipdb.set_trace()
+            tParams = {}
+            for k in params_synthetic[self.params['dataset']]:
+                tParams[k] = self.tWeights[k+'_W']
+            mu  = self.params_synthetic[self.params['dataset']]['trans_fxn'](z, fxn_params = tParams)
             cov = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['trans_cov']
             cov.name = 'TransitionCov'
             return mu,cov

@@ -26,7 +26,7 @@ parser.add_argument('-previnp','--use_prev_input', action='store_true', help='Us
 parser.add_argument('-usenade','--use_nade', action='store_true', help='Use NADE ')
 
 parser.add_argument('-el','--emission_layers', action='store',default = 2, help='Layers in emission fxn', type=int)
-parser.add_argument('-etype','--emission_type', action='store',default = 'mlp', help='Type of emission fxn', type=str, choices=['mlp','conditional'])
+parser.add_argument('-etype','--emission_type', action='store',default = 'mlp', help='Type of emission fxn', type=str, choices=['mlp','conditional','res'])
 
 #Weights and Nonlinearity
 parser.add_argument('-iw','--init_weight', action='store',default = 0.1, help='Range to initialize weights during learning',type=float)

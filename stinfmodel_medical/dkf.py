@@ -45,6 +45,7 @@ class DKF(BaseModel, object):
             return
         DIM_HIDDEN     = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
+        assert not self.params['use_prev_input'],'Not supported'
         if self.params['transition_type']=='mlp':
             DIM_HIDDEN_TRANS = DIM_HIDDEN*2
             for l in range(self.params['transition_layers']):
@@ -53,44 +54,14 @@ class DKF(BaseModel, object):
                     dim_input = self.params['dim_stochastic']
                 npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
                 npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
-            if self.params['use_prev_input']:
-                npWeights['p_trans_W_0'] = self._getWeight((DIM_STOCHASTIC+self.params['dim_observations'],
-                                                                DIM_HIDDEN_TRANS))
-                npWeights['p_trans_b_0'] = self._getWeight((DIM_HIDDEN_TRANS,))
             MU_COV_INP = DIM_HIDDEN_TRANS
-        elif self.params['transition_type']=='simple_gated':
-            DIM_HIDDEN_TRANS = DIM_HIDDEN*2
-            npWeights['p_gate_embed_W_0'] = self._getWeight((DIM_STOCHASTIC, DIM_HIDDEN_TRANS))
-            npWeights['p_gate_embed_b_0'] = self._getWeight((DIM_HIDDEN_TRANS,))
-            npWeights['p_gate_embed_W_1'] = self._getWeight((DIM_HIDDEN_TRANS, DIM_STOCHASTIC))
-            npWeights['p_gate_embed_b_1'] = self._getWeight((DIM_STOCHASTIC,))
-            npWeights['p_z_W_0'] = self._getWeight((DIM_STOCHASTIC, DIM_HIDDEN_TRANS))
-            npWeights['p_z_b_0'] = self._getWeight((DIM_HIDDEN_TRANS,))
-            npWeights['p_z_W_1'] = self._getWeight((DIM_HIDDEN_TRANS, DIM_STOCHASTIC))
-            npWeights['p_z_b_1'] = self._getWeight((DIM_STOCHASTIC,))
-            if self.params['use_prev_input']:
-                npWeights['p_z_W_0'] = self._getWeight((DIM_STOCHASTIC+self.params['dim_observations'], DIM_HIDDEN_TRANS))
-                npWeights['p_z_b_0'] = self._getWeight((DIM_HIDDEN_TRANS,))
-                npWeights['p_gate_embed_W_0'] = self._getWeight((DIM_STOCHASTIC+self.params['dim_observations'],
-                                                                DIM_HIDDEN_TRANS))
-                npWeights['p_gate_embed_b_0'] = self._getWeight((DIM_HIDDEN_TRANS,))
-            MU_COV_INP = DIM_STOCHASTIC
         else:
             assert False,'Invalid transition type: '+self.params['transition_type']
+        npWeights['p_trans_W_mu']       = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
+        npWeights['p_trans_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
+        npWeights['p_trans_W_cov']      = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
+        npWeights['p_trans_b_cov']      = self._getWeight((self.params['dim_stochastic'],))
         
-        if self.params['transition_type']=='simple_gated':
-            weight= np.eye(self.params['dim_stochastic']).astype(config.floatX)
-            bias  = np.zeros((self.params['dim_stochastic'],)).astype(config.floatX)
-            #Initialize the weights to be identity
-            npWeights['p_trans_W_mu'] = weight
-            npWeights['p_trans_b_mu'] = bias
-        else:
-            npWeights['p_trans_W_mu']       = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
-            npWeights['p_trans_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
-        npWeights['p_trans_W_cov'] = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
-        npWeights['p_trans_b_cov'] = self._getWeight((self.params['dim_stochastic'],))
-        
-        #Emission Function [MLP]
         if self.params['emission_type'] == 'mlp':
             for l in range(self.params['emission_layers']):
                 dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
@@ -98,23 +69,12 @@ class DKF(BaseModel, object):
                     dim_input = self.params['dim_stochastic']
                 npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
                 npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
-        elif self.params['emission_type'] =='conditional':
-            for l in range(self.params['emission_layers']):
-                dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
-                if l==0:
-                    dim_input = self.params['dim_stochastic']+self.params['dim_observations']
-                npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
-                npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
+                #0 out the relevant parts based on the indicator functions, multiply by 1 elsewhere
         else:
             assert False, 'Invalid emission type: '+str(self.params['emission_type'])
         if self.params['data_type']=='binary':
             npWeights['p_emis_W_ber'] = self._getWeight((self.params['dim_hidden'], self.params['dim_observations']))
             npWeights['p_emis_b_ber'] = self._getWeight((self.params['dim_observations'],))
-        elif self.params['data_type']=='binary_nade':
-            n_visible, n_hidden   = self.params['dim_observations'], self.params['dim_hidden']
-            npWeights['p_nade_W'] = self._getWeight((n_visible, n_hidden))
-            npWeights['p_nade_U'] = self._getWeight((n_visible,n_hidden))
-            npWeights['p_nade_b'] = self._getWeight((n_visible,))
         else:
             assert False,'Invalid datatype: '+params['data_type']
 

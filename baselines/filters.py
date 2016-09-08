@@ -33,9 +33,17 @@ def runFilter(observations, params, dname, filterType):
                     initial_state_mean    = np.array([params[dname]['init_mu']]),
                     initial_state_covariance = np.array(params[dname]['init_cov']))
     else:
+        #In this case, the transition and emission function may have other parameters
+        #Create wrapper functions that are instantiated w/ the true parameters
+        #and pass them to the UKF
+        def trans_fxn(z):
+            return params[dname]['trans_fxn'](z, fxn_params = params[dname]['params'])
+        def obs_fxn(z):
+            return params[dname]['obs_fxn'](z, fxn_params = params[dname]['params'])
+
         model=AdditiveUnscentedKalmanFilter(
-                    transition_functions  = params[dname]['trans_fxn'],
-                    observation_functions = params[dname]['obs_fxn'],
+                    transition_functions  = trans_fxn, #params[dname]['trans_fxn'],
+                    observation_functions = emis_fxn,  #params[dname]['obs_fxn'],
                     transition_covariance = np.array([params[dname]['trans_cov']]),  #transition cov
                     observation_covariance= np.array([params[dname]['obs_cov']]),  #obs cov
                     initial_state_mean    = np.array([params[dname]['init_mu']]),
