@@ -13,6 +13,10 @@ def runBaselines(DIR):
 
     for f in glob.glob(DATADIR+'/*.h5'):
         dataset = os.path.basename(f).replace('.h5','')
+        print dataset,f
+        if os.path.exists(DIR+'/'+dataset+'-baseline.h5'):
+            print DIR+'/'+dataset+'-baseline.h5',' found....not rerunning baseline'
+            continue
         print 'Reading from: ',f,' Saving to: ',DIR+'/'+dataset+'-baseline.h5'
 
         filterType = params_synthetic[dataset]['baseline']
