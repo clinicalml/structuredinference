@@ -59,16 +59,12 @@ def learn(dkf, dataset, indicators, actions, mask, epoch_start=0, epoch_end=1000
                 tmpMap = {}
                 bound_valid_list.append(
                     (epoch, 
-                     DKF_evaluate.evaluateBound(dkf, dataset_eval, mask_eval, batch_size=batch_size, 
+                     DKF_evaluate.evaluateBound(dkf, dataset_eval, indicators_eval, actions_eval, mask_eval, batch_size=batch_size, 
                                               additional = tmpMap, normalization=normalization)))
                 bound_tsbn_list.append((epoch, tmpMap['tsbn_bound']))
-                nll_valid_list.append(
-                    DKF_evaluate.impSamplingNLL(dkf, dataset_eval, mask_eval, batch_size,
-                                                                  normalization=normalization))
             intermediate['valid_bound'] = np.array(bound_valid_list)
             intermediate['train_bound'] = np.array(bound_train_list)
             intermediate['tsbn_bound']  = np.array(bound_tsbn_list)
-            intermediate['valid_nll']  = np.array(nll_valid_list)
             saveHDF5(savefile+'-EP'+str(epoch)+'-stats.h5', intermediate)
             dkf.resetDataset(dataset, indicators, actions, mask)
     #Final information to be collected
@@ -76,5 +72,4 @@ def learn(dkf, dataset, indicators, actions, mask, epoch_start=0, epoch_end=1000
     retMap['train_bound']   = np.array(bound_train_list)
     retMap['valid_bound']   = np.array(bound_valid_list)
     retMap['tsbn_bound']   = np.array(bound_tsbn_list)
-    retMap['valid_nll']  = np.array(nll_valid_list)
     return retMap

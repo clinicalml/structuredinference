@@ -40,39 +40,32 @@ class DKF(BaseModel, object):
         return npWeights
     def _createGenerativeParams(self, npWeights):
         """ Create weights/params for generative model """
-        if 'synthetic' in self.params['dataset']:
-            return
         DIM_HIDDEN     = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
-        assert not self.params['use_prev_input'],'Not supported'
-        if self.params['transition_type']=='mlp':
-            DIM_HIDDEN_TRANS = DIM_HIDDEN*2
-            for l in range(self.params['transition_layers']):
-                dim_input,dim_output = DIM_HIDDEN_TRANS, DIM_HIDDEN_TRANS
-                if l==0:
-                    dim_input = self.params['dim_stochastic']
-                npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
-                npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
-            MU_COV_INP = DIM_HIDDEN_TRANS
-            if self.params['dim_actions']>0:
-                npWeights['p_action_W'] = self._getWeights((self.params['dim_actions'],self.params['dim_stochastic']))
-        else:
-            assert False,'Invalid transition type: '+self.params['transition_type']
+        DIM_HIDDEN_TRANS = DIM_HIDDEN*2
+        for l in range(self.params['transition_layers']):
+            dim_input,dim_output = DIM_HIDDEN_TRANS, DIM_HIDDEN_TRANS
+            if l==0:
+                dim_input = self.params['dim_stochastic']
+                if self.params['dim_actions']>0.:
+                    dim_input*=2
+            npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
+            npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
+        MU_COV_INP = DIM_HIDDEN_TRANS
+        if self.params['dim_actions']>0:
+            npWeights['p_action_W'] = self._getWeight((self.params['dim_actions'],self.params['dim_stochastic']))
         npWeights['p_trans_W_mu']       = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
         npWeights['p_trans_W_cov']      = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_cov']      = self._getWeight((self.params['dim_stochastic'],))
         
-        if self.params['emission_type'] == 'mlp':
-            for l in range(self.params['emission_layers']):
-                dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
-                if l==0:
-                    dim_input = self.params['dim_stochastic']
-                npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
-                npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
-                #0 out the relevant parts based on the indicator functions, multiply by 1 elsewhere
-        else:
-            assert False, 'Invalid emission type: '+str(self.params['emission_type'])
+        for l in range(self.params['emission_layers']):
+            dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
+            if l==0:
+                dim_input = self.params['dim_stochastic']
+            npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
+            npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
+            #0 out the relevant parts based on the indicator functions, multiply by 1 elsewhere
         if self.params['data_type']=='binary':
             npWeights['p_emis_W_ber'] = self._getWeight((self.params['dim_hidden'], self.params['dim_observations']))
             npWeights['p_emis_b_ber'] = self._getWeight((self.params['dim_observations'],))
@@ -102,8 +95,6 @@ class DKF(BaseModel, object):
             pass 
         elif self.params['inference_model']=='structured':
             DIM_INPUT = self.params['dim_stochastic']
-            if self.params['use_generative_prior']:
-                DIM_INPUT = self.params['rnn_size']
             npWeights['q_W_st_0'] = self._getWeight((DIM_INPUT, self.params['rnn_size']))
             npWeights['q_b_st_0'] = self._getWeight((self.params['rnn_size'],))
         else:
@@ -140,19 +131,13 @@ class DKF(BaseModel, object):
         Input:  z [bs x T x dim]
         Output: (params, ) or (mu, cov) of size [bs x T x dim]
         """
-        if self.params['emission_type']=='mlp':
-            self._p('EMISSION TYPE: MLP')
-            hid = z
-        else:
-            assert False,'Invalid emission type'
+        hid = z
         for l in range(self.params['emission_layers']):
                 hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)],  self.tWeights['p_emis_b_'+str(l)], hid)
         if self.params['data_type']=='binary':
             mean_params     = T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
             if self.params['dim_indicators']>0:
                 assert I is not None,'Requires I'
-                import ipdb;ipdb.set_trace()
-                #This assumes dimensionality of I is the same as X and is binary
                 mean_params = mean_params*I
             return [mean_params]
         else:
@@ -164,20 +149,15 @@ class DKF(BaseModel, object):
         Input:  z [bs x T x dim], u<if actions present in model> [bs x T x dim]
         Output: mu, cov of size [bs x T x dim]
         """
-        if self.params['transition_type']=='mlp':
-            hid = z
-            if self.params['dim_actions']>0:
-                import ipdb;ipdb.set_trace()
-                #embed from binary to real valued
-                embed = T.dot(A,self.tWeights['p_action_W'])
-                hid = T.concatenate([embed, hid],axis=2)
-            for l in range(self.params['transition_layers']):
-                hid = self._LinearNL(self.tWeights['p_trans_W_'+str(l)],self.tWeights['p_trans_b_'+str(l)],hid)
-            mu     = T.dot(hid, self.tWeights['p_trans_W_mu']) + self.tWeights['p_trans_b_mu']
-            cov    = T.nnet.softplus(T.dot(hid, self.tWeights['p_trans_W_cov'])+self.tWeights['p_trans_b_cov'])
-            return mu,cov
-        else:
-            assert False,'Invalid Transition type: '+str(self.params['transition_type'])
+        hid = z
+        if self.params['dim_actions']>0:
+            embed = T.dot(A,self.tWeights['p_action_W'])
+            hid = T.concatenate([embed, hid],axis=2)
+        for l in range(self.params['transition_layers']):
+            hid = self._LinearNL(self.tWeights['p_trans_W_'+str(l)],self.tWeights['p_trans_b_'+str(l)],hid)
+        mu     = T.dot(hid, self.tWeights['p_trans_W_mu']) + self.tWeights['p_trans_b_mu']
+        cov    = T.nnet.softplus(T.dot(hid, self.tWeights['p_trans_W_cov'])+self.tWeights['p_trans_b_cov'])
+        return mu,cov
 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#    
     def _buildLSTM(self, X, embedding, dropout_prob = 0.):
@@ -256,7 +236,7 @@ class DKF(BaseModel, object):
         z_q,mu_q,cov_q     = self._inferenceLayer(hidden_state)
         
         observation_params = self._getEmissionFxn(z_q, I=I)
-        mu_trans, cov_trans= self._getTransitionFxn(z_q, X=X, A=A)
+        mu_trans, cov_trans= self._getTransitionFxn(z_q, A=A)
         mu_prior           = T.concatenate([T.alloc(np.asarray(0.).astype(config.floatX),
                                               X.shape[0],1,self.params['dim_stochastic']), mu_trans[:,:-1,:]],axis=1)
         cov_prior = T.concatenate([T.alloc(np.asarray(1.).astype(config.floatX),
@@ -303,8 +283,8 @@ class DKF(BaseModel, object):
     
     def resetDataset(self, newX, newI, newA, newM, quiet=False):
         if not quiet:
-            ddim,mdim = self.dimData()
-            self._p('Original dim:'+str(ddim)+', '+str(mdim))
+            ddim,idim,adim,mdim = self.dimData()
+            self._p('Original dim:'+str(ddim)+', '+str(idim)+', '+str(adim)+', '+str(mdim))
         self.setData(newX=newX.astype(config.floatX),
                 newIndicators=newI.astype(config.floatX),
                 newActions=newA.astype(config.floatX),
@@ -402,22 +382,17 @@ class DKF(BaseModel, object):
         ll_posterior = self._llGaussian(eval_z_q, eval_mu_q, eval_logcov_q).sum(2)*M
         ll_estimate  = -1*eval_CNLLvec+ll_prior.sum(1,keepdims=True)-ll_posterior.sum(1,keepdims=True)
         
-        eval_inputs = [eval_z_q]
         self.likelihood          = theano.function(fxn_inputs, ll_estimate, name = 'Importance Sampling based likelihood')
         self.evaluate            = theano.function(fxn_inputs, eval_cost, name = 'Evaluate Bound')
-        if self.params['use_prev_input']:
-            eval_inputs.append(X)
+        eval_inputs = [eval_z_q]
+        if self.params['dim_actions']>0:
+            eval_inputs.append(idx)
         self.transition_fxn      = theano.function(eval_inputs,[eval_mu_trans, eval_logcov_trans],
                                                        name='Transition Function')
         emission_inputs = [eval_z_q]
-        if self.params['emission_type']=='conditional':
-            emission_inputs.append(X)
-        if self.params['data_type']=='binary_nade':
-            self.emission_fxn = theano.function(emission_inputs, 
-                                                eval_obs_params[1], name='Emission Function')
-        else:
-            self.emission_fxn = theano.function(emission_inputs, 
-                                                eval_obs_params[0], name='Emission Function')
+        if self.params['dim_actions']>0:
+            emission_inputs.append(idx)
+        self.emission_fxn = theano.function(emission_inputs, eval_obs_params[0], name='Emission Function')
         self.posterior_inference = theano.function(fxn_inputs, 
                                                    [eval_z_q, eval_mu_q, eval_logcov_q],
                                                    name='Posterior Inference') 

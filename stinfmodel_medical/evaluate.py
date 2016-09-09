@@ -47,37 +47,5 @@ def evaluateBound(dkf, dataset, indicators, actions, mask, batch_size,S=2, norma
     additional['tsbn_bound'] = tsbn_bound
     return bound
 
-def impSamplingNLL(dkf, dataset, mask, batch_size, S = 2, normalization = 'frame'):
-    """ Importance sampling based log likelihood """
-    ll = 0
-    start_time = time.time()
-    N = dataset.shape[0]
-    dkf.resetDataset(dataset,indicators,actions,mask)
-    for bnum,st_idx in enumerate(range(0,N,batch_size)):
-        end_idx = min(st_idx+batch_size, N)
-        idx_data= np.arange(st_idx,end_idx)
-        maxS = S
-        lllist = []
-        for s in range(S):
-            if s>0 and s%500==0:
-                dkf._p('Done '+str(s))
-            batch_vec = dkf.likelihood(idx=idx_data)
-            if np.any(np.isnan(batch_vec)) or np.any(np.isinf(batch_vec)):
-                dkf._p('NaN detected during evaluation. Ignoring this sample')
-                maxS -=1
-                continue
-            else:
-                lllist.append(batch_vec)
-        ll  += dkf.meanSumExp(np.concatenate(lllist,axis=1), axis=1).sum()
-    if normalization=='frame':
-        ll /= float(mask.sum())
-    elif normalization=='sequence':
-        ll /= float(N)
-    else:
-        assert False,'Invalid normalization specified'
-    end_time   = time.time()
-    dkf._p(('(Evaluate w/ Imp. Sampling) Validation LL: %.4f [Took %.4f seconds]')%(ll,end_time-start_time))
-    return ll
-
 def sampleGaussian(dkf,mu,logcov):
         return mu + np.random.randn(*mu.shape)*np.exp(0.5*logcov)

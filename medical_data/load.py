@@ -53,9 +53,9 @@ def loadMedicalData(setting = 'A'):
     else:
         assert False,'Invalid setting :'+str(setting)
     #All 1's mask
-    dataset['train_mask'] = np.ones_like(dataset['train_obs']) 
-    dataset['valid_mask'] = np.ones_like(dataset['valid_obs']) 
-    dataset['test_mask']  = np.ones_like(dataset['test_obs']) 
+    dataset['train_mask'] = np.ones_like(dataset['train_obs'][:,:,0]) 
+    dataset['valid_mask'] = np.ones_like(dataset['valid_obs'][:,:,0]) 
+    dataset['test_mask']  = np.ones_like(dataset['test_obs'][:,:,0]) 
     dataset['data_type']  = 'binary'
     return dataset
 
