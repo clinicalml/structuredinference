@@ -7,8 +7,7 @@ from parse_args_dkf_medical import params
 from utils.misc import removeIfExists,createIfAbsent,mapPrint,saveHDF5,displayTime,getLowestError
 from medical_data.load import loadMedicalData
 
-setting = 'A'
-dataset = loadMedicalData(setting=setting)
+dataset = loadMedicalData(setting=params['dataset'])
 params['savedir']+='-'+params['dataset']
 createIfAbsent(params['savedir'])
 

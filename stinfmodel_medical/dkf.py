@@ -45,33 +45,26 @@ class DKF(BaseModel, object):
             return
         DIM_HIDDEN     = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
-        assert not self.params['use_prev_input'],'Not supported'
-        if self.params['transition_type']=='mlp':
-            DIM_HIDDEN_TRANS = DIM_HIDDEN*2
-            for l in range(self.params['transition_layers']):
-                dim_input,dim_output = DIM_HIDDEN_TRANS, DIM_HIDDEN_TRANS
-                if l==0:
-                    dim_input = self.params['dim_stochastic']
-                npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
-                npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
-            MU_COV_INP = DIM_HIDDEN_TRANS
-        else:
-            assert False,'Invalid transition type: '+self.params['transition_type']
+        DIM_HIDDEN_TRANS = DIM_HIDDEN*2
+        for l in range(self.params['transition_layers']):
+            dim_input,dim_output = DIM_HIDDEN_TRANS, DIM_HIDDEN_TRANS
+            if l==0:
+                dim_input = self.params['dim_stochastic']
+            npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
+            npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
+        MU_COV_INP = DIM_HIDDEN_TRANS
         npWeights['p_trans_W_mu']       = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
         npWeights['p_trans_W_cov']      = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_cov']      = self._getWeight((self.params['dim_stochastic'],))
         
-        if self.params['emission_type'] == 'mlp':
-            for l in range(self.params['emission_layers']):
-                dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
-                if l==0:
-                    dim_input = self.params['dim_stochastic']
-                npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
-                npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
-                #0 out the relevant parts based on the indicator functions, multiply by 1 elsewhere
-        else:
-            assert False, 'Invalid emission type: '+str(self.params['emission_type'])
+        for l in range(self.params['emission_layers']):
+            dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
+            if l==0:
+                dim_input = self.params['dim_stochastic']
+            npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
+            npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
+            #0 out the relevant parts based on the indicator functions, multiply by 1 elsewhere
         if self.params['data_type']=='binary':
             npWeights['p_emis_W_ber'] = self._getWeight((self.params['dim_hidden'], self.params['dim_observations']))
             npWeights['p_emis_b_ber'] = self._getWeight((self.params['dim_observations'],))
@@ -101,8 +94,6 @@ class DKF(BaseModel, object):
             pass 
         elif self.params['inference_model']=='structured':
             DIM_INPUT = self.params['dim_stochastic']
-            if self.params['use_generative_prior']:
-                DIM_INPUT = self.params['rnn_size']
             npWeights['q_W_st_0'] = self._getWeight((DIM_INPUT, self.params['rnn_size']))
             npWeights['q_b_st_0'] = self._getWeight((self.params['rnn_size'],))
         else:
@@ -139,24 +130,8 @@ class DKF(BaseModel, object):
         Input:  z [bs x T x dim]
         Output: (params, ) or (mu, cov) of size [bs x T x dim]
         """
-        if 'synthetic' in self.params['dataset']:
-            self._p('Using emission function for '+self.params['dataset'])
-            mu       = self.params_synthetic[self.params['dataset']]['obs_fxn'](z)
-            cov      = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['obs_cov']
-            cov.name = 'EmissionCov'
-            return [mu,cov]
         
-        if self.params['emission_type']=='mlp':
-            self._p('EMISSION TYPE: MLP')
-            hid = z
-        elif self.params['emission_type']=='conditional':
-            self._p('EMISSION TYPE: conditional')
-            X_prev  = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
-            hid     = T.concatenate([z,X_prev],axis=2)
-        else:
-            assert False,'Invalid emission type'
-        
-        #self._p('TODO: FIX THIS, SHOULD BE LINEAR FOR NADE')
+        hid = z
         for l in range(self.params['emission_layers']):
             if self.params['data_type']=='binary_nade' and l==self.params['emission_layers']-1:
                 hid = T.dot(hid, self.tWeights['p_emis_W_'+str(l)]) + self.tWeights['p_emis_b_'+str(l)]
@@ -305,28 +280,15 @@ class DKF(BaseModel, object):
                                     q_W_mu, q_b_mu,
                                     q_W_cov,q_b_cov):
             #Using the prior distribution directly
-            if self.params['use_generative_prior']:
-                assert not self.params['use_prev_input'],'No support for using previous input'
-                #Get mu/cov from z_prev through prior distribution
-                mu_1,cov_1 = self._getTransitionFxn(z_prev) 
-                #Combine with estimate of mu/cov from data
-                h_data     = T.tanh(T.dot(h_t,q_W_st_0)+q_b_st_0)
-                mu_2       = T.dot(h_data,q_W_mu)+q_b_mu
-                cov_2      = T.nnet.softplus(T.dot(h_data,q_W_cov)+q_b_cov)
-                mu         = (mu_1*cov_2+mu_2*cov_1)/(cov_1+cov_2)
-                cov        = (cov_1*cov_2)/(cov_1+cov_2)
-                z          = mu + T.sqrt(cov)*eps_t
-                return z, mu, cov
+            h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
+            if self.params['var_model']=='LR':
+                h_next = (1./3.)*(h_t+h_next)
             else:
-                h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
-                if self.params['var_model']=='LR':
-                    h_next = (1./3.)*(h_t+h_next)
-                else:
-                    h_next = (1./2.)*(h_t+h_next)
-                mu_t       = T.dot(h_next,q_W_mu)+q_b_mu
-                cov_t      = T.nnet.softplus(T.dot(h_next,q_W_cov)+q_b_cov)
-                z_t        = mu_t+T.sqrt(cov_t)*eps_t
-                return z_t, mu_t, cov_t
+                h_next = (1./2.)*(h_t+h_next)
+            mu_t       = T.dot(h_next,q_W_mu)+q_b_mu
+            cov_t      = T.nnet.softplus(T.dot(h_next,q_W_cov)+q_b_cov)
+            z_t        = mu_t+T.sqrt(cov_t)*eps_t
+            return z_t, mu_t, cov_t
         if type(hidden_state) is list:
             eps         = self.srng.normal(size=(hidden_state[0].shape[1],hidden_state[0].shape[0],self.params['dim_stochastic'])) 
         else:

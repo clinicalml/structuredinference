@@ -6,7 +6,7 @@ import argparse,copy
 from collections import OrderedDict
 p = argparse.ArgumentParser(description="Arguments for variational autoencoder")
 parser = argparse.ArgumentParser()
-parser.add_argument('-dset','--dataset', action='store',default = '', help='Dataset', type=str)
+parser.add_argument('-dset','--dataset', action='store',default = 'A', help='Dataset', type=str,choices=['A','B','C'])
 
 #Recognition Model
 parser.add_argument('-rl','--rnn_layers', action='store',default = 1, help='Number of layers in the RNN', type=int, choices=[1,2])
