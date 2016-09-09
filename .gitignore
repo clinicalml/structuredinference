@@ -33,3 +33,4 @@ expt-polyphonic/*.txt
 *.npz
 *.pkl
 datasets/tmp_MOCAP*.mat
+*.txt
