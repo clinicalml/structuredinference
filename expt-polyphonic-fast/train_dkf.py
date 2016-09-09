@@ -89,5 +89,5 @@ with open(params['dataset']+'-results.txt','a') as f:
     f.write('Experiment Name: <'+params['expt_name']+'> Test Bound: '+str(savedata['bound_test_best'])+' '+str(savedata['bound_tsbn_test_best'])+' '+str(savedata['ll_test_best'])+'\n')
     fcntl.flock(f, fcntl.LOCK_UN)
 
-#if 'nyu.edu' in socket.gethostname():
-#    import ipdb;ipdb.set_trace()
+if 'nyu.edu' in socket.gethostname():
+    import ipdb;ipdb.set_trace()

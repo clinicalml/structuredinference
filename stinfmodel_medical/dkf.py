@@ -38,33 +38,41 @@ class DKF(BaseModel, object):
         self._createInferenceParams(npWeights)
         self._createGenerativeParams(npWeights)
         return npWeights
-    
     def _createGenerativeParams(self, npWeights):
         """ Create weights/params for generative model """
         if 'synthetic' in self.params['dataset']:
             return
         DIM_HIDDEN     = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
-        DIM_HIDDEN_TRANS = DIM_HIDDEN*2
-        for l in range(self.params['transition_layers']):
-            dim_input,dim_output = DIM_HIDDEN_TRANS, DIM_HIDDEN_TRANS
-            if l==0:
-                dim_input = self.params['dim_stochastic']
-            npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
-            npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
-        MU_COV_INP = DIM_HIDDEN_TRANS
+        assert not self.params['use_prev_input'],'Not supported'
+        if self.params['transition_type']=='mlp':
+            DIM_HIDDEN_TRANS = DIM_HIDDEN*2
+            for l in range(self.params['transition_layers']):
+                dim_input,dim_output = DIM_HIDDEN_TRANS, DIM_HIDDEN_TRANS
+                if l==0:
+                    dim_input = self.params['dim_stochastic']
+                npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
+                npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
+            MU_COV_INP = DIM_HIDDEN_TRANS
+            if self.params['dim_actions']>0:
+                npWeights['p_action_W'] = self._getWeights((self.params['dim_actions'],self.params['dim_stochastic']))
+        else:
+            assert False,'Invalid transition type: '+self.params['transition_type']
         npWeights['p_trans_W_mu']       = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
         npWeights['p_trans_W_cov']      = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_cov']      = self._getWeight((self.params['dim_stochastic'],))
         
-        for l in range(self.params['emission_layers']):
-            dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
-            if l==0:
-                dim_input = self.params['dim_stochastic']
-            npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
-            npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
-            #0 out the relevant parts based on the indicator functions, multiply by 1 elsewhere
+        if self.params['emission_type'] == 'mlp':
+            for l in range(self.params['emission_layers']):
+                dim_input,dim_output = DIM_HIDDEN, DIM_HIDDEN
+                if l==0:
+                    dim_input = self.params['dim_stochastic']
+                npWeights['p_emis_W_'+str(l)] = self._getWeight((dim_input, dim_output))
+                npWeights['p_emis_b_'+str(l)] = self._getWeight((dim_output,))
+                #0 out the relevant parts based on the indicator functions, multiply by 1 elsewhere
+        else:
+            assert False, 'Invalid emission type: '+str(self.params['emission_type'])
         if self.params['data_type']=='binary':
             npWeights['p_emis_W_ber'] = self._getWeight((self.params['dim_hidden'], self.params['dim_observations']))
             npWeights['p_emis_b_ber'] = self._getWeight((self.params['dim_observations'],))
@@ -94,6 +102,8 @@ class DKF(BaseModel, object):
             pass 
         elif self.params['inference_model']=='structured':
             DIM_INPUT = self.params['dim_stochastic']
+            if self.params['use_generative_prior']:
+                DIM_INPUT = self.params['rnn_size']
             npWeights['q_W_st_0'] = self._getWeight((DIM_INPUT, self.params['rnn_size']))
             npWeights['q_b_st_0'] = self._getWeight((self.params['rnn_size'],))
         else:
@@ -124,114 +134,43 @@ class DKF(BaseModel, object):
                 npWeights['U_lstm_'+suffix+'_'+str(l)] = self._getWeight((RNN_SIZE,RNN_SIZE*4),scheme='lstm')
     
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""#
-    def _getEmissionFxn(self, z, X=None):
+    def _getEmissionFxn(self, z, I = None):
         """
         Apply emission function to zs
         Input:  z [bs x T x dim]
         Output: (params, ) or (mu, cov) of size [bs x T x dim]
         """
-        
-        hid = z
+        if self.params['emission_type']=='mlp':
+            self._p('EMISSION TYPE: MLP')
+            hid = z
+        else:
+            assert False,'Invalid emission type'
         for l in range(self.params['emission_layers']):
-            if self.params['data_type']=='binary_nade' and l==self.params['emission_layers']-1:
-                hid = T.dot(hid, self.tWeights['p_emis_W_'+str(l)]) + self.tWeights['p_emis_b_'+str(l)]
-            else:
                 hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)],  self.tWeights['p_emis_b_'+str(l)], hid)
         if self.params['data_type']=='binary':
-            mean_params=T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
+            mean_params     = T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
+            if self.params['dim_indicators']>0:
+                assert I is not None,'Requires I'
+                import ipdb;ipdb.set_trace()
+                #This assumes dimensionality of I is the same as X and is binary
+                mean_params = mean_params*I
             return [mean_params]
-        elif self.params['data_type']=='binary_nade':
-            self._p('NADE observations')
-            assert X is not None,'Need observations for NADE'
-            x_reshaped   = X.dimshuffle(2,0,1)
-            x0 = T.ones((hid.shape[0],hid.shape[1]))#x_reshaped[0]) # bs x T
-            a0 = hid #bs x T x nhid
-            W = self.tWeights['p_nade_W']
-            V = self.tWeights['p_nade_U']
-            b = self.tWeights['p_nade_b']
-            #Use a NADE at the output
-            def NADEDensity(x, w, v, b, a_prev, x_prev):#Estimating likelihood
-                a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
-                h   = T.nnet.sigmoid(a) #bs x T x nhid
-                p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
-                return (a, x, p_xi_is_one)
-            ([_, _, mean_params], _) = theano.scan(NADEDensity,
-                                                   sequences=[x_reshaped, W, V, b],
-                                                   outputs_info=[a0, x0,None])
-            #theano function to sample from NADE
-            def NADESample(w, v, b, a_prev_s, x_prev_s):
-                a_s   = a_prev_s + T.dot(T.shape_padright(x_prev_s, 1), T.shape_padleft(w, 1))
-                h_s   = T.nnet.sigmoid(a_s) #bs x T x nhid
-                p_xi_is_one_s = T.nnet.sigmoid(T.dot(h_s, v) + b)
-                x_s   = T.switch(p_xi_is_one_s>0.5,1.,0.)
-                return (a_s, x_s, p_xi_is_one_s)
-            ([_, _, sampled_params], _) = theano.scan(NADESample,
-                                                   sequences=[W, V, b],
-                                                   outputs_info=[a0, x0,None])
-            """
-            def NADEDensityAndSample(x, w, v, b, 
-                                     a_prev,   x_prev, 
-                                     a_prev_s, x_prev_s ):
-                a     = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
-                h     = T.nnet.sigmoid(a) #bs x T x nhid
-                p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
-                
-                a_s   = a_prev_s + T.dot(T.shape_padright(x_prev_s, 1), T.shape_padleft(w, 1))
-                h_s   = T.nnet.sigmoid(a_s) #bs x T x nhid
-                p_xi_is_one_s = T.nnet.sigmoid(T.dot(h_s, v) + b)
-                x_s   = T.switch(p_xi_is_one_s>0.5,1.,0.)
-                return (a, x, a_s, x_s, p_xi_is_one, p_xi_is_one_s)
-            
-            ([_, _, _, _, mean_params,sampled_params], _) = theano.scan(NADEDensityAndSample,
-                                                   sequences=[x_reshaped, W, V, b],
-                                                   outputs_info=[a0, x0, a0, x0, None, None])
-            """
-            sampled_params = sampled_params.dimshuffle(1,2,0)
-            mean_params    = mean_params.dimshuffle(1,2,0)
-            return [mean_params,sampled_params]
         else:
             assert False,'Invalid type of data'
     
-    def _getTransitionFxn(self, z, X=None):
+    def _getTransitionFxn(self, z, A=None):
         """
         Apply transition function to zs
         Input:  z [bs x T x dim], u<if actions present in model> [bs x T x dim]
         Output: mu, cov of size [bs x T x dim]
         """
-        if 'synthetic' in self.params['dataset']:
-            self._p('Using transition function for '+self.params['dataset'])
-            mu  = self.params_synthetic[self.params['dataset']]['trans_fxn'](z)
-            cov = T.ones_like(mu)*self.params_synthetic[self.params['dataset']]['trans_cov']
-            cov.name = 'TransitionCov'
-            return mu,cov
-        
-        if self.params['transition_type']=='simple_gated':
-            def mlp(inp, W1,b1,W2,b2, X_prev=None):
-                if X_prev is not None:
-                    h1 = self._LinearNL(W1,b1, T.concatenate([inp,X_prev],axis=2))
-                else:
-                    h1 = self._LinearNL(W1,b1, inp)
-                h2 = T.dot(h1,W2)+b2
-                return h2
-            
-            gateInp= z
-            X_prev = None
-            if self.params['use_prev_input']:
-                X_prev = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
-            gate   = T.nnet.sigmoid(mlp(gateInp, self.tWeights['p_gate_embed_W_0'], self.tWeights['p_gate_embed_b_0'], 
-                                        self.tWeights['p_gate_embed_W_1'],self.tWeights['p_gate_embed_b_1'],
-                                        X_prev = X_prev))
-            z_prop = mlp(z,self.tWeights['p_z_W_0'] ,self.tWeights['p_z_b_0'], 
-                         self.tWeights['p_z_W_1'] , self.tWeights['p_z_b_1'], X_prev = X_prev)
-            mu     = gate*z_prop + (1.-gate)*(T.dot(z, self.tWeights['p_trans_W_mu'])+self.tWeights['p_trans_b_mu'])
-            cov    = T.nnet.softplus(T.dot(self._applyNL(z_prop), self.tWeights['p_trans_W_cov'])+
-                                     self.tWeights['p_trans_b_cov'])
-            return mu,cov
-        elif self.params['transition_type']=='mlp':
+        if self.params['transition_type']=='mlp':
             hid = z
-            if self.params['use_prev_input']:
-                X_prev = T.concatenate([T.zeros_like(X[:,[0],:]),X[:,:-1,:]],axis=1)
-                hid    = T.concatenate([hid,X_prev],axis=2)
+            if self.params['dim_actions']>0:
+                import ipdb;ipdb.set_trace()
+                #embed from binary to real valued
+                embed = T.dot(A,self.tWeights['p_action_W'])
+                hid = T.concatenate([embed, hid],axis=2)
             for l in range(self.params['transition_layers']):
                 hid = self._LinearNL(self.tWeights['p_trans_W_'+str(l)],self.tWeights['p_trans_b_'+str(l)],hid)
             mu     = T.dot(hid, self.tWeights['p_trans_W_mu']) + self.tWeights['p_trans_b_mu']
@@ -254,15 +193,6 @@ class DKF(BaseModel, object):
         if self.params['var_model']=='R':
             suffix='r'
             return self._LSTMlayer(embedding, suffix, dropout_prob)
-        elif self.params['var_model']=='L':
-            suffix='l'
-            return self._LSTMlayer(embedding, suffix, dropout_prob)
-        elif self.params['var_model']=='LR':
-            suffix='l'
-            l2r   = self._LSTMlayer(embedding, suffix, dropout_prob)
-            suffix='r'
-            r2l   = self._LSTMlayer(embedding, suffix, dropout_prob)
-            return [l2r,r2l]
         else:
             assert False,'Invalid variational model'
         self._p(('Done <_buildLSTM> [Took %.4f]')%(time.time()-start_time))
@@ -279,7 +209,6 @@ class DKF(BaseModel, object):
                                     q_W_st_0, q_b_st_0,
                                     q_W_mu, q_b_mu,
                                     q_W_cov,q_b_cov):
-            #Using the prior distribution directly
             h_next     = T.tanh(T.dot(z_prev,q_W_st_0)+q_b_st_0)
             if self.params['var_model']=='LR':
                 h_next = (1./3.)*(h_t+h_next)
@@ -300,20 +229,7 @@ class DKF(BaseModel, object):
             else:
                 state   = hidden_state
             eps_swap    = eps.swapaxes(0,1)
-            if self.params['dim_stochastic']==1:
-                """
-                TODO: Write to theano authors regarding this issue.
-                Workaround for theano issue: The result of a matrix multiply is a "matrix"
-                even if one of the dimensions is 1. However defining a tensor with one dimension one
-                means theano regards the resulting tensor as a matrix and consequently in the
-                scan as a column. This results in a mismatch in tensor type in input (column)
-                and output (matrix) and throws an error. This is a workaround that preserves
-                type while not affecting dimensions
-                """
-                z0 = T.zeros((eps_swap.shape[1], self.params['rnn_size']))
-                z0 = T.dot(z0,T.zeros_like(self.tWeights['q_W_mu']))
-            else:
-                z0 = T.zeros((eps_swap.shape[1], self.params['dim_stochastic']))
+            z0 = T.zeros((eps_swap.shape[1], self.params['dim_stochastic']))
             rval, _     = theano.scan(structuredApproximation, 
                                     sequences=[state, eps_swap],
                                     outputs_info=[z0, None,None],
@@ -324,25 +240,6 @@ class DKF(BaseModel, object):
                                     name='structuredApproximation')
             z, mu, cov = rval[0].swapaxes(0,1), rval[1].swapaxes(0,1), rval[2].swapaxes(0,1)
             return z, mu, cov
-        elif self.params['inference_model']=='mean_field':
-            if self.params['var_model']=='LR':
-                l2r = hidden_state[0].swapaxes(0,1)
-                r2l = hidden_state[1].swapaxes(0,1)
-                hidl2r   = l2r
-                mu_1     = T.dot(hidl2r,self.tWeights['q_W_mu'])+self.tWeights['q_b_mu']
-                cov_1    = T.nnet.softplus(T.dot(hidl2r, self.tWeights['q_W_cov'])+self.tWeights['q_b_cov'])
-                hidr2l   = r2l
-                mu_2     = T.dot(hidr2l,self.tWeights['q_W_mu_r'])+self.tWeights['q_b_mu_r']
-                cov_2    = T.nnet.softplus(T.dot(hidr2l, self.tWeights['q_W_cov_r'])+self.tWeights['q_b_cov_r'])
-                mu = (mu_1*cov_2+mu_2*cov_1)/(cov_1+cov_2)
-                cov= (cov_1*cov_2)/(cov_1+cov_2)
-                z = mu + T.sqrt(cov)*eps
-            else:
-                hid       = hidden_state.swapaxes(0,1)
-                mu        = T.dot(hid,self.tWeights['q_W_mu'])+self.tWeights['q_b_mu']
-                cov       = T.nnet.softplus(T.dot(hid,self.tWeights['q_W_cov'])+ self.tWeights['q_b_cov'])
-                z         = mu + T.sqrt(cov)*eps
-            return z,mu,cov
         else:
             assert False,'Invalid recognition model'
         
@@ -351,28 +248,20 @@ class DKF(BaseModel, object):
         return self._LinearNL(self.tWeights['q_W_input_0'],self.tWeights['q_b_input_0'], X)
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
     
-    def _inferenceAndReconstruction(self, X, dropout_prob = 0.):
-        """
-        Returns z_q, mu_q and cov_q
-        """
+    def _inferenceAndReconstruction(self, X, I, A, dropout_prob = 0.):
+        """ Returns z_q, mu_q and cov_q """
         self._p('Building with dropout:'+str(dropout_prob))
-        embedding         = self._qEmbeddingLayer(X)
-        hidden_state      = self._buildLSTM(X, embedding, dropout_prob)
-        z_q,mu_q,cov_q    = self._inferenceLayer(hidden_state)
+        embedding          = self._qEmbeddingLayer(X)
+        hidden_state       = self._buildLSTM(X, embedding, dropout_prob)
+        z_q,mu_q,cov_q     = self._inferenceLayer(hidden_state)
         
-        #Regularize z_q (for train) 
-        #if dropout_prob>0.:
-        #    z_q  = z_q + self.srng.normal(z_q.shape, 0.,0.0025,dtype=config.floatX)
-        #z_q.name          = 'z_q'
-        
-        observation_params = self._getEmissionFxn(z_q,X=X)
-        mu_trans, cov_trans= self._getTransitionFxn(z_q, X=X)
-        mu_prior     = T.concatenate([T.alloc(np.asarray(0.).astype(config.floatX),
+        observation_params = self._getEmissionFxn(z_q, I=I)
+        mu_trans, cov_trans= self._getTransitionFxn(z_q, X=X, A=A)
+        mu_prior           = T.concatenate([T.alloc(np.asarray(0.).astype(config.floatX),
                                               X.shape[0],1,self.params['dim_stochastic']), mu_trans[:,:-1,:]],axis=1)
         cov_prior = T.concatenate([T.alloc(np.asarray(1.).astype(config.floatX),
                                               X.shape[0],1,self.params['dim_stochastic']), cov_trans[:,:-1,:]],axis=1)
         return observation_params, z_q, mu_q, cov_q, mu_prior, cov_prior, mu_trans, cov_trans
-    
     
     def _getTemporalKL(self, mu_q, cov_q, mu_prior, cov_prior, M, batchVector = False):
         """
@@ -412,36 +301,45 @@ class DKF(BaseModel, object):
         else:
             return negCLL.sum()
     
-    def resetDataset(self, newX,newM,quiet=False):
+    def resetDataset(self, newX, newI, newA, newM, quiet=False):
         if not quiet:
             ddim,mdim = self.dimData()
             self._p('Original dim:'+str(ddim)+', '+str(mdim))
-        self.setData(newX=newX.astype(config.floatX),newMask=newM.astype(config.floatX))
+        self.setData(newX=newX.astype(config.floatX),
+                newIndicators=newI.astype(config.floatX),
+                newActions=newA.astype(config.floatX),
+                newMask=newM.astype(config.floatX))
         if not quiet:
-            ddim,mdim = self.dimData()
-            self._p('New dim:'+str(ddim)+', '+str(mdim))
+            ddim,idim,adim,mdim = self.dimData()
+            self._p('New dim:'+str(ddim)+', '+str(idim)+', '+str(adim)+', '+str(mdim))
     def _buildModel(self):
         if 'synthetic' in self.params['dataset']:
             self.params_synthetic = params_synthetic
         """ High level function to build and setup theano functions """
-        #X      = T.tensor3('X',   dtype=config.floatX)
-        #eps    = T.tensor3('eps', dtype=config.floatX)
-        #M      = T.matrix('M', dtype=config.floatX)
         idx                = T.vector('idx',dtype='int64')
         idx.tag.test_value = np.array([0,1]).astype('int64')
         self.dataset       = theano.shared(np.random.uniform(0,1,size=(3,5,self.params['dim_observations'])).astype(config.floatX))
+        self.indicators    = theano.shared(np.random.uniform(0,1,size=(3,5,self.params['dim_indicators'])).astype(config.floatX))
+        self.actions       = theano.shared(np.random.uniform(0,1,size=(3,5,self.params['dim_actions'])).astype(config.floatX))
         self.mask          = theano.shared(np.array(([[1,1,1,1,0],[1,1,0,0,0],[1,1,1,0,0]])).astype(config.floatX))
         X_o                = self.dataset[idx]
+        I_o                = self.indicators[idx]
+        A_o                = self.actions[idx]
         M_o                = self.mask[idx]
         maxidx             = T.cast(M_o.sum(1).max(),'int64')
         X                  = X_o[:,:maxidx,:]
+        I                  = I_o[:,:maxidx,:]
+        A                  = A_o[:,:maxidx,:]
         M                  = M_o[:,:maxidx]
         newX,newMask       = T.tensor3('newX',dtype=config.floatX),T.matrix('newMask',dtype=config.floatX)
-        self.setData       = theano.function([newX,newMask],None,updates=[(self.dataset,newX),(self.mask,newMask)])
-        self.dimData       = theano.function([],[self.dataset.shape,self.mask.shape])
+        newIndicators      = T.tensor3('newIndicators',dtype=config.floatX)
+        newActions         = T.tensor3('newActions',dtype=config.floatX)
+        self.setData       = theano.function([newX,newIndicators,newActions,newMask],None,
+                updates=[(self.dataset,newX),(self.mask,newMask),(self.indicators,newIndicators),(self.actions,newActions)])
+        self.dimData       = theano.function([],[self.dataset.shape,self.indicators.shape, self.actions.shape, self.mask.shape])
         
         #Learning Rates and annealing objective function
-        #Add them to npWeights/tWeights to be tracked [do not have a prefix _W or _b so wont be diff.]
+        #Add them to npWeights/tWeights to be tracked [do not have a prefix _W or _b so wont be differentiated]
         self._addWeights('lr', np.asarray(self.params['lr'],dtype=config.floatX),borrow=False)
         self._addWeights('anneal', np.asarray(0.01,dtype=config.floatX),borrow=False)
         self._addWeights('update_ctr', np.asarray(1.,dtype=config.floatX),borrow=False)
@@ -462,8 +360,8 @@ class DKF(BaseModel, object):
             print '****** CREATING TRAINING FUNCTION*****'
             ############# Setup training functions ###########
             obs_params, z_q, mu_q, cov_q, mu_prior, cov_prior, _, _ = self._inferenceAndReconstruction( 
-                                                              X, dropout_prob = self.params['rnn_dropout'])
-            negCLL = self._getNegCLL(obs_params, X, M)
+                                                              X, I, A, dropout_prob = self.params['rnn_dropout'])
+            negCLL     = self._getNegCLL(obs_params, X, M)
             TemporalKL = self._getTemporalKL(mu_q, cov_q, mu_prior, cov_prior, M)
             train_cost = negCLL+anneal*TemporalKL
 
@@ -486,7 +384,7 @@ class DKF(BaseModel, object):
         #Updates ack
         self.updates_ack = True
         eval_obs_params, eval_z_q, eval_mu_q, eval_cov_q, eval_mu_prior, eval_cov_prior, \
-        eval_mu_trans, eval_cov_trans = self._inferenceAndReconstruction(X,dropout_prob = 0.)
+        eval_mu_trans, eval_cov_trans = self._inferenceAndReconstruction(X, I, A, dropout_prob = 0.)
         eval_z_q.name = 'eval_z_q'
         eval_CNLLvec=self._getNegCLL(eval_obs_params, X, M, batchVector = True)
         eval_KLvec  = self._getTemporalKL(eval_mu_q, eval_cov_q,eval_mu_prior, eval_cov_prior, M, batchVector = True)
