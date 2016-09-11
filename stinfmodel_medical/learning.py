@@ -65,7 +65,6 @@ def learn(dkf, dataset, indicators, actions, mask, epoch_start=0, epoch_end=1000
             intermediate['valid_bound'] = np.array(bound_valid_list)
             intermediate['train_bound'] = np.array(bound_train_list)
             intermediate['tsbn_bound']  = np.array(bound_tsbn_list)
-            intermediate['samples']      = DKF_evaluate.sample(N=100,T=18)
             saveHDF5(savefile+'-EP'+str(epoch)+'-stats.h5', intermediate)
             dkf.resetDataset(dataset, indicators, actions, mask)
     #Final information to be collected
@@ -73,5 +72,4 @@ def learn(dkf, dataset, indicators, actions, mask, epoch_start=0, epoch_end=1000
     retMap['train_bound']  = np.array(bound_train_list)
     retMap['valid_bound']  = np.array(bound_valid_list)
     retMap['tsbn_bound']   = np.array(bound_tsbn_list)
-    retMap['samples']      = DKF_evaluate.sample(N=100,T=18)
     return retMap

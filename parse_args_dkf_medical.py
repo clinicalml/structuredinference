@@ -17,8 +17,8 @@ parser.add_argument('-infm','--inference_model', action='store',default = 'struc
 parser.add_argument('-ql','--q_mlp_layers', action='store',default = 1, help='#Layers in Recognition Model', type=int)
 
 #Generative model
-parser.add_argument('-ds','--dim_stochastic', action='store',default = 100, help='Stochastic dimensions', type=int)
-parser.add_argument('-dh','--dim_hidden', action='store', default = 200, help='Hidden dimensions in DKF', type=int)
+parser.add_argument('-ds','--dim_stochastic', action='store',default = 30, help='Stochastic dimensions', type=int)
+parser.add_argument('-dh','--dim_hidden', action='store', default = 100, help='Hidden dimensions in DKF', type=int)
 parser.add_argument('-tl','--transition_layers', action='store', default = 2, help='Layers in transition fxn', type=int)
 parser.add_argument('-el','--emission_layers', action='store',default = 2, help='Layers in emission fxn', type=int)
 

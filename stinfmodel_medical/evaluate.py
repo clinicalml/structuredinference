@@ -13,6 +13,7 @@ def infer(dkf, dataset):
     assert len(dataset.shape)==3,'Expecting 3D tensor for data' 
     return dkf.posterior_inference(dataset)
 
+
 def evaluateBound(dkf, dataset, indicators, actions, mask, batch_size,S=2, normalization = 'frame', additional={}):
     """ Evaluate ELBO """
     bound = 0
