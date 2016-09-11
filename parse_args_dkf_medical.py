@@ -34,7 +34,7 @@ parser.add_argument('-vonly','--validate_only', action='store_true', help='Only 
 #Optimization
 parser.add_argument('-lr','--lr', action='store',default = 8e-4, help='Learning rate', type=float)
 parser.add_argument('-opt','--optimizer', action='store',default = 'adam', help='Optimizer',choices=['adam','rmsprop'])
-parser.add_argument('-bs','--batch_size', action='store',default = 20, help='Batch Size',type=int)
+parser.add_argument('-bs','--batch_size', action='store',default = 256, help='Batch Size',type=int)
 parser.add_argument('-ar','--anneal_rate', action='store',default = 10., help='Number of param. updates before anneal=1',type=float)
 parser.add_argument('-repK','--replicate_K', action='store',default = None, help='Number of samples used for the variational bound. Created by replicating the batch',type=int)
 parser.add_argument('-shuf','--shuffle', action='store_true',help='Shuffle during training')

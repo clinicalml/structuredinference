@@ -48,12 +48,12 @@ class DKF(BaseModel, object):
             if l==0:
                 dim_input = self.params['dim_stochastic']
                 if self.params['dim_actions']>0.:
-                    dim_input*=2
+                    dim_input+=self.params['dim_actions']
             npWeights['p_trans_W_'+str(l)] = self._getWeight((dim_input, dim_output))
             npWeights['p_trans_b_'+str(l)] = self._getWeight((dim_output,))
         MU_COV_INP = DIM_HIDDEN_TRANS
         if self.params['dim_actions']>0:
-            npWeights['p_action_W'] = self._getWeight((self.params['dim_actions'],self.params['dim_stochastic']))
+            npWeights['p_action_W'] = self._getWeight((self.params['dim_actions'],self.params['dim_actions']))
         npWeights['p_trans_W_mu']       = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
         npWeights['p_trans_b_mu']       = self._getWeight((self.params['dim_stochastic'],))
         npWeights['p_trans_W_cov']      = self._getWeight((MU_COV_INP, self.params['dim_stochastic']))
@@ -136,9 +136,9 @@ class DKF(BaseModel, object):
                 hid = self._LinearNL(self.tWeights['p_emis_W_'+str(l)],  self.tWeights['p_emis_b_'+str(l)], hid)
         if self.params['data_type']=='binary':
             mean_params     = T.nnet.sigmoid(T.dot(hid,self.tWeights['p_emis_W_ber'])+self.tWeights['p_emis_b_ber'])
-            if self.params['dim_indicators']>0:
-                assert I is not None,'Requires I'
-                mean_params = mean_params*I
+            #if self.params['dim_indicators']>0:
+            #    assert I is not None,'Requires I'
+            #    mean_params = mean_params*I
             return [mean_params]
         else:
             assert False,'Invalid type of data'
@@ -261,21 +261,18 @@ class DKF(BaseModel, object):
         else:
             return KLvec.sum()
     
-    def _getNegCLL(self, obs_params, X, M, batchVector = False):
+    def _getNegCLL(self, obs_params, X, M, I = None, batchVector = False):
         """
         Estimate the negative conditional log likelihood of x|z under the generative model
         M: mask of size bs x T
         X: target of size bs x T x dim
         """
-        if self.params['data_type']=='real':
-            mu_p      = obs_params[0]
-            cov_p     = obs_params[1]
-            std_p     = T.sqrt(cov_p)
-            negCLL_t  = 0.5 * np.log(2 * np.pi) + 0.5*T.log(cov_p) + 0.5 * ((X - mu_p) / std_p)**2
-            negCLL    = (negCLL_t.sum(2)*M).sum(1,keepdims=True)
-        else:
-            mean_p = obs_params[0]
-            negCLL = (T.nnet.binary_crossentropy(mean_p,X).sum(2)*M).sum(1,keepdims=True)
+        mean_p = obs_params[0]
+        bce    = T.nnet.binary_crossentropy(mean_p,X)
+        if self.params['dim_indicators']>0:
+            assert I is not None,'Expect I'
+            bce= bce*I
+        negCLL = (bce.sum(2)*M).sum(1,keepdims=True)
         if batchVector:
             return negCLL
         else:
@@ -341,7 +338,7 @@ class DKF(BaseModel, object):
             ############# Setup training functions ###########
             obs_params, z_q, mu_q, cov_q, mu_prior, cov_prior, _, _ = self._inferenceAndReconstruction( 
                                                               X, I, A, dropout_prob = self.params['rnn_dropout'])
-            negCLL     = self._getNegCLL(obs_params, X, M)
+            negCLL     = self._getNegCLL(obs_params, X, M, I=I)
             TemporalKL = self._getTemporalKL(mu_q, cov_q, mu_prior, cov_prior, M)
             train_cost = negCLL+anneal*TemporalKL
 
@@ -366,7 +363,7 @@ class DKF(BaseModel, object):
         eval_obs_params, eval_z_q, eval_mu_q, eval_cov_q, eval_mu_prior, eval_cov_prior, \
         eval_mu_trans, eval_cov_trans = self._inferenceAndReconstruction(X, I, A, dropout_prob = 0.)
         eval_z_q.name = 'eval_z_q'
-        eval_CNLLvec=self._getNegCLL(eval_obs_params, X, M, batchVector = True)
+        eval_CNLLvec=self._getNegCLL(eval_obs_params, X, M, I=I, batchVector = True)
         eval_KLvec  = self._getTemporalKL(eval_mu_q, eval_cov_q,eval_mu_prior, eval_cov_prior, M, batchVector = True)
         eval_cost   = eval_CNLLvec + eval_KLvec
         
@@ -384,18 +381,20 @@ class DKF(BaseModel, object):
         
         self.likelihood          = theano.function(fxn_inputs, ll_estimate, name = 'Importance Sampling based likelihood')
         self.evaluate            = theano.function(fxn_inputs, eval_cost, name = 'Evaluate Bound')
+        eval_z_q.name = 'z'
+        A.name        = 'actions'
         eval_inputs = [eval_z_q]
         if self.params['dim_actions']>0:
-            eval_inputs.append(idx)
+            eval_inputs.append(A)
         self.transition_fxn      = theano.function(eval_inputs,[eval_mu_trans, eval_logcov_trans],
-                                                       name='Transition Function')
+                                                       name='Transition Function', allow_input_downcast= True)
         emission_inputs = [eval_z_q]
-        if self.params['dim_actions']>0:
-            emission_inputs.append(idx)
-        self.emission_fxn = theano.function(emission_inputs, eval_obs_params[0], name='Emission Function')
-        self.posterior_inference = theano.function(fxn_inputs, 
+        #if self.params['dim_indicators']>0:
+        #    emission_inputs.append(I)
+        self.emission_fxn = theano.function(emission_inputs, eval_obs_params[0], name='Emission Function', allow_input_downcast=True)
+        self.posterior_inference = theano.function([X], 
                                                    [eval_z_q, eval_mu_q, eval_logcov_q],
-                                                   name='Posterior Inference') 
+                                                   name='Posterior Inference', allow_input_downcast=True) 
     #"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""# 
 if __name__=='__main__':
     """ use this to check compilation for various options"""
