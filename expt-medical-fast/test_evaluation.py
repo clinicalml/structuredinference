@@ -26,5 +26,7 @@ tosave = {}
 tosave['x_s'] = x_sampled
 tosave['a_s'] = dataset['test_act']
 
-savePickle([tosave], fname)
+dataCfac     = DKF_evaluate.dataCfac(dkf, dataset['test_obs'], dataset['test_act'], dataset['act_dict'])
+modelCfac = DKF_evaluate.modelCfac(dkf, dataset['test_act'])
+savePickle([tosave, dataCfac, modelCfac], fname)
 print 'Done evaluation'
