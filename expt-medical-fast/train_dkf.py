@@ -5,6 +5,7 @@ sys.path.append('../')
 from datasets.load import loadDataset
 from parse_args_dkf_medical import params 
 from utils.misc import removeIfExists,createIfAbsent,mapPrint,saveHDF5,displayTime,getLowestError
+from utils.misc import savePickle
 from medical_data.load import loadMedicalData
 
 dataset = loadMedicalData(setting=params['dataset'])
@@ -56,4 +57,14 @@ savedata = DKF_learn.learn(dkf, dataset['train_obs'], dataset['train_ind'], data
                                 shuffle    = False
                                 )
 displayTime('Running DKF',start_time, time.time()         )
+
+fname = pfile.replace('-config.pkl','-cfac.pkl')
+x_sampled, z_sampled  = DKF_evaluate.sample(dkf, dataset['test_act'])
+tosave        = {}
+tosave['x_s'] = x_sampled
+tosave['a_s'] = dataset['test_act']
+dataCfac      = DKF_evaluate.dataCfac(dkf, dataset['test_obs'], dataset['test_act'], dataset['act_dict'])
+modelCfac     = DKF_evaluate.modelCfac(dkf, dataset['test_act'])
+savePickle([tosave, dataCfac, modelCfac], fname)
+print 'Done evaluation'
 import ipdb;ipdb.set_trace()
