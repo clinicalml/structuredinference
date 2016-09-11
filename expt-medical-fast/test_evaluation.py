@@ -22,7 +22,6 @@ dkf  = DKF(params, paramFile = pfile, reloadFile = reloadFile)
 fname= 'check_evaluation.pkl'
 x_sampled, z_sampled  = DKF_evaluate.sample(dkf, dataset['test_act'])
 
-
 tosave = {}
 tosave['x_s'] = x_sampled
 tosave['a_s'] = dataset['test_act']

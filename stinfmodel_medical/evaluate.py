@@ -23,22 +23,27 @@ def evaluateBound(dkf, dataset, indicators, actions, mask, batch_size,S=2, norma
     for bnum,st_idx in enumerate(range(0,N,batch_size)):
         end_idx = min(st_idx+batch_size, N)
 
+def modelCfac(dkf, actions):
+    pass
 
 
+def getFirstIdx(act_data, drugIdx):
+    act = act_data.squeeze()[:,drugIdx]
+    assert act.ndim==1,'Expecting 1 d'
+    act = 
 
-def
+def dataCfac(dkf, dataset, actions, patient_dict): 
     assert False,'Metformin not found'
-    patlist = []
+    drugIdx= action_dict.index('METFORMIN')
     dataCfac= {}
     for idx in range(dataset.shape[0]):
         pat_data = dataset[[idx],:,:] #1x18x48
         act_data = actions[[idx],:,:] #1x18x8
         #Conditions 
         #   Has a prescription of metformin + has some data (2 months) to do inference 
-        st_idx = getFirstIdx(act_data) 
+        st_idx = getFirstIdx(act_data, drugIdx) 
         if st_idx>0:
             continue
-        patlist.append(idx)
         #Do inference w/ the patient data up to st_idx
         _,mu,_        = dkf.posterior_inference(pat_data[:,:st_idx,:])
         remaining_act = act_data[:,st_idx:,:]
