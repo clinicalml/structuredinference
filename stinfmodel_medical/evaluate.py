@@ -14,7 +14,7 @@ def infer(dkf, dataset):
     return dkf.posterior_inference(dataset)
 
 
-def evaluateBound(dkf, dataset, indicators, actions, mask, batch_size,S=2, normalization = 'frame', additional={}):
+def evaluateBound(dkf, dataset, indicators, actions, mask, batch_size, normalization = 'frame', additional={}):
     """ Evaluate ELBO """
     bound = 0
     start_time = time.time()
@@ -24,22 +24,11 @@ def evaluateBound(dkf, dataset, indicators, actions, mask, batch_size,S=2, norma
     for bnum,st_idx in enumerate(range(0,N,batch_size)):
         end_idx = min(st_idx+batch_size, N)
         idx_data= np.arange(st_idx,end_idx)
-        maxS = S
         bound_sum, tsbn_bound_sum = 0, 0
-        for s in range(S):
-            if s>0 and s%500==0:
-                dkf._p('Done '+str(s))
-            batch_vec= dkf.evaluate(idx=idx_data)
-            M = mask[idx_data]
-            if np.any(np.isnan(batch_vec)) or np.any(np.isinf(batch_vec)):
-                dkf._p('NaN detected during evaluation. Ignoring this sample')
-                maxS -=1
-                continue
-            else:
-                tsbn_bound_sum+=(batch_vec/M.sum(1,keepdims=True)).sum()
-                bound_sum+=batch_vec.sum()
-        tsbn_bound += tsbn_bound_sum/float(max(maxS*N,1.))
-        bound  += bound_sum/float(max(maxS,1.))
+        batch_vec= dkf.evaluate(idx=idx_data)
+        M = mask[idx_data]
+        tsbn_bound_sum+=(batch_vec/M.sum(1,keepdims=True)).sum()
+        bound_sum+=batch_vec.sum()
     bound /= float(N)
     end_time   = time.time()
     dkf._p(('(Evaluate) Validation Bound: %.4f [Took %.4f seconds], TSBN Bound: %.4f')%(bound,end_time-start_time,tsbn_bound))
