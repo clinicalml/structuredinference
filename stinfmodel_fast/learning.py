@@ -31,6 +31,10 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
     model_params = {} 
 
     #Start of training loop
+    if 'synthetic' in dkf.params['dataset']:
+        epfreq = 10
+    else:
+        epfreq = 1
 
     #Set data
     dkf.resetDataset(dataset, mask)
@@ -57,7 +61,7 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             #Update bound
             bound  += batch_bound
             ### Display ###
-            if bnum%10==0:
+            if epoch%epfreq==0 and bnum%10==0:
                 if normalization=='frame':
                     bval = batch_bound/float(M_sum)
                 elif normalization=='sequence':
@@ -74,7 +78,8 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             assert False,'Invalid normalization'
         bound_train_list.append((epoch,bound))
         end_time   = time.time()
-        dkf._p(('(Ep %d) Bound: %.4f [Took %.4f seconds] ')%(epoch, bound, end_time-start_time))
+        if epoch%epfreq==0:
+            dkf._p(('(Ep %d) Bound: %.4f [Took %.4f seconds] ')%(epoch, bound, end_time-start_time))
         
         #Save at intermediate stages
         if savefreq is not None and epoch%savefreq==0:
@@ -128,7 +133,7 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
         retMap['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
         retMap['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
         for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
-            intermediate[k+'_learned'] = np.array(model_params[k]) 
+            retMap[k+'_learned'] = np.array(model_params[k]) 
     return retMap
 
 def _syntheticProc(dkf, dataset, mask, dataset_eval, mask_eval):

@@ -45,7 +45,7 @@ class DKF(BaseModel, object):
             updateParamsSynthetic(params_synthetic)
             self.params_synthetic = params_synthetic
             for k in self.params_synthetic[self.params['dataset']]['params']:
-                npWeights[k+'_W'] = np.array(0.,dtype=config.floatX) 
+                npWeights[k+'_W'] = np.array(np.random.uniform(-0.2,0.2),dtype=config.floatX) 
             return
         DIM_HIDDEN     = self.params['dim_hidden']
         DIM_STOCHASTIC = self.params['dim_stochastic']
@@ -575,9 +575,10 @@ class DKF(BaseModel, object):
             #Get updates from optimizer
             model_params         = self._getModelParams()
             optimizer_up, norm_list  = self._setupOptimizer(train_cost, model_params,lr = lr, 
-                                                            reg_type =self.params['reg_type'], 
-                                                            reg_spec =self.params['reg_spec'], 
-                                                            reg_value= self.params['reg_value'],
+                                                            #Turning off for synthetic
+                                                            #reg_type =self.params['reg_type'], 
+                                                            #reg_spec =self.params['reg_spec'], 
+                                                            #reg_value= self.params['reg_value'],
                                                             divide_grad = T.cast(X.shape[0],dtype=config.floatX),   
                                                            grad_norm = 1.)
                                                            
