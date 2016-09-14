@@ -5,7 +5,6 @@ from datasets.load import loadDataset
 from parse_args_dkf import params 
 from utils.misc import removeIfExists,createIfAbsent,mapPrint,saveHDF5,displayTime
 
-params['dim_stochastic'] = 1
 
 if params['dataset']=='':
     params['dataset']='synthetic9'
@@ -14,7 +13,7 @@ params['savedir']+='-'+params['dataset']
 createIfAbsent(params['savedir'])
 
 #Saving/loading
-for k in ['dim_observations','dim_actions','data_type']:
+for k in ['dim_observations','dim_actions','data_type', 'dim_stochastic']:
     params[k] = dataset[k]
 mapPrint('Options: ',params)
 
