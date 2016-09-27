@@ -231,7 +231,6 @@ class DKF(BaseModel, object):
             assert X is not None,'Need observations for NADE'
             if self.params['emission_type']=='res':
                 hid += T.dot(z,self.tWeights['p_res_W'])
-
             x_reshaped   = X.dimshuffle(2,0,1)
             x0 = T.ones((hid.shape[0],hid.shape[1]))#x_reshaped[0]) # bs x T
             a0 = hid #bs x T x nhid
@@ -240,8 +239,8 @@ class DKF(BaseModel, object):
             b = self.tWeights['p_nade_b']
             #Use a NADE at the output
             def NADEDensity(x, w, v, b, a_prev, x_prev):#Estimating likelihood
-                a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1))
-                h   = T.nnet.sigmoid(a) #bs x T x nhid
+                a   = a_prev + T.dot(T.shape_padright(x_prev, 1), T.shape_padleft(w, 1)) 
+                h   = T.nnet.sigmoid(a) #Original - bs x T x nhid
                 p_xi_is_one = T.nnet.sigmoid(T.dot(h, v) + b)
                 return (a, x, p_xi_is_one)
             ([_, _, mean_params], _) = theano.scan(NADEDensity,
@@ -250,7 +249,7 @@ class DKF(BaseModel, object):
             #theano function to sample from NADE
             def NADESample(w, v, b, a_prev_s, x_prev_s):
                 a_s   = a_prev_s + T.dot(T.shape_padright(x_prev_s, 1), T.shape_padleft(w, 1))
-                h_s   = T.nnet.sigmoid(a_s) #bs x T x nhid
+                h_s   = T.nnet.sigmoid(a_s) #Original - bs x T x nhid
                 p_xi_is_one_s = T.nnet.sigmoid(T.dot(h_s, v) + b)
                 x_s   = T.switch(p_xi_is_one_s>0.5,1.,0.)
                 return (a_s, x_s, p_xi_is_one_s)
