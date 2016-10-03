@@ -1,5 +1,5 @@
 # structuredInf
-Structured Inference Networks for Nonlinear State Space Models
+[Structured Inference Networks for Nonlinear State Space Models](https://arxiv.org/abs/1609.09869)
 
 ## Goal
 The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
