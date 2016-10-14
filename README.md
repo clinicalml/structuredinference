@@ -1,7 +1,6 @@
 # structuredInf
-Code to fully reproduce benchmark results, and to extend for your own purposes, for the following paper:
-
-[Structured Inference Networks for Nonlinear State Space Models](https://arxiv.org/abs/1609.09869)
+Code to fully reproduce benchmark results (and to extend for your own purposes) from the paper:
+<p align="center">[Structured Inference Networks for Nonlinear State Space Models](https://arxiv.org/abs/1609.09869)</p>
 
 ## Goal
 The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
@@ -15,11 +14,10 @@ This method is a good fit if:
 * You would like to have a method for fast posterior inference at train and test time 
 * Your temporal generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables).
 
-<img src="images/dkf.png" alt="Deep Kalman Filter" width="300">
+<p align="center"><img src="images/dkf.png" alt="Deep Kalman Filter" width="300"></p>
 
 The code uses variational inference during learning to maximize the likelihood of the observed data:
-
-<img src="images/ELBO.png" width="500" height="70" alt="Evidence Lower Bound">
+<p align="center"><img src="images/ELBO.png" width="500" height="70" alt="Evidence Lower Bound"></p>
 
 *Generative Model* 
 
