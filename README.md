@@ -13,11 +13,11 @@ This method is a good fit if:
 * You would like to have a method for fast posterior inference at train and test time 
 * Your temporal generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables).
 
-![DKF](images/dkf.png?raw=true "Deep Kalman Filter")
+<img src="images/dkf.png?raw=true" alt="Deep Kalman Filter" width="300">
 
 The code uses variational inference during learning to maximize the likelihood of the observed data. 
 
-![ELBO](images/ELBO.png?raw=true width="500" height="70" "Evidence Lower Bound")
+<img src="images/ELBO.png?raw=true" width="500" height="70" alt="Evidence Lower Bound">
 
 *Generative Model* 
 
