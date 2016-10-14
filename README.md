@@ -1,6 +1,6 @@
 # structuredInf
 Code to fully reproduce benchmark results (and to extend for your own purposes) from the paper:
-<p align="center">[Structured Inference Networks for Nonlinear State Space Models](https://arxiv.org/abs/1609.09869)</p>
+<p align="center"><a href="https://arxiv.org/abs/1609.09869">Structured Inference Networks for Nonlinear State Space Models</a></p>
 
 ## Goal
 The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
