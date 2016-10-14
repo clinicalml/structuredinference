@@ -1,4 +1,6 @@
 # structuredInf
+Code to fully reproduce benchmark results, and to extend for your own purposes, for the following paper:
+
 [Structured Inference Networks for Nonlinear State Space Models](https://arxiv.org/abs/1609.09869)
 
 ## Goal
