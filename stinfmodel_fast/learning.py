@@ -103,19 +103,29 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
             intermediate['valid_nll']  = np.array(nll_valid_list)
             if 'synthetic' in dkf.params['dataset']:
                 mu_train, cov_train, mu_valid, cov_valid, learned_params = _syntheticProc(dkf, dataset,mask, dataset_eval,mask_eval)
-                mu_list_train.append(mu_train)
-                cov_list_train.append(cov_train)
-                mu_list_valid.append(mu_valid)
-                cov_list_valid.append(cov_valid)
+                if dkf.params['dim_stochastic']==1:
+                    mu_list_train.append(mu_train)
+                    cov_list_train.append(cov_train)
+                    mu_list_valid.append(mu_valid)
+                    cov_list_valid.append(cov_valid)
+                    intermediate['mu_posterior_train']  = np.concatenate(mu_list_train, axis=2)
+                    intermediate['cov_posterior_train'] = np.concatenate(cov_list_train, axis=2)
+                    intermediate['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
+                    intermediate['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
+                else:
+                    mu_list_train.append(mu_train[:,None])
+                    cov_list_train.append(cov_train[:,None])
+                    mu_list_valid.append(mu_valid[:,None])
+                    cov_list_valid.append(cov_valid[:,None])
+                    intermediate['mu_posterior_train']  = np.concatenate(mu_list_train, axis=-1)
+                    intermediate['cov_posterior_train'] = np.concatenate(cov_list_train, axis=-1)
+                    intermediate['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=-1)
+                    intermediate['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=-1)
                 for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
                     if k in model_params:
                         model_params[k].append(learned_params[k])
                     else:
                         model_params[k] = [learned_params[k]]
-                intermediate['mu_posterior_train']  = np.concatenate(mu_list_train, axis=2)
-                intermediate['cov_posterior_train'] = np.concatenate(cov_list_train, axis=2)
-                intermediate['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
-                intermediate['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
                 for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
                     intermediate[k+'_learned'] = np.array(model_params[k]).squeeze() 
             saveHDF5(savefile+'-EP'+str(epoch)+'-stats.h5', intermediate)
@@ -128,10 +138,16 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
     retMap['tsbn_bound']   = np.array(bound_tsbn_list)
     retMap['valid_nll']  = np.array(nll_valid_list)
     if 'synthetic' in dkf.params['dataset']:
-        retMap['mu_posterior_train']  = np.concatenate(mu_list_train, axis=2)
-        retMap['cov_posterior_train'] = np.concatenate(cov_list_train, axis=2)
-        retMap['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
-        retMap['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
+        if dkf.params['dim_stochastic']==1:
+            retMap['mu_posterior_train']  = np.concatenate(mu_list_train, axis=2)
+            retMap['cov_posterior_train'] = np.concatenate(cov_list_train, axis=2)
+            retMap['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=2)
+            retMap['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=2)
+        else:
+            retMap['mu_posterior_train']  = np.concatenate(mu_list_train, axis=-1)
+            retMap['cov_posterior_train'] = np.concatenate(cov_list_train, axis=-1)
+            retMap['mu_posterior_valid']  = np.concatenate(mu_list_valid, axis=-1)
+            retMap['cov_posterior_valid'] = np.concatenate(cov_list_valid, axis=-1)
         for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 
             retMap[k+'_learned'] = np.array(model_params[k]) 
     return retMap
