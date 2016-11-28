@@ -1,5 +1,6 @@
 # structuredInf
-Structured Inference Networks for Nonlinear State Space Models
+Code to fully reproduce benchmark results (and to extend for your own purposes) from the paper:
+<p align="center">Krishnan, Shalit, Sontag. <a href="https://arxiv.org/abs/1609.09869">Structured Inference Networks for Nonlinear State Space Models</a>, arXiv:1609.09869, 2016.</p>
 
 ## Goal
 The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
@@ -13,11 +14,10 @@ This method is a good fit if:
 * You would like to have a method for fast posterior inference at train and test time 
 * Your temporal generative model has Gaussian latent variables (mean/variance can be a nonlinear function of previous timestep's variables).
 
-![DKF](images/dkf.png?raw=true "Deep Kalman Filter")
+<p align="center"><img src="images/dkf.png" alt="Deep Kalman Filter" width="300"></p>
 
-The code uses variational inference during learning to maximize the likelihood of the observed data. 
-
-![ELBO](images/ELBO.png?raw=true width="500" height="70" "Evidence Lower Bound")
+The code uses variational inference during learning to maximize the likelihood of the observed data:
+<p align="center"><img src="images/ELBO.png" width="500" height="70" alt="Evidence Lower Bound"></p>
 
 *Generative Model* 
 
@@ -97,10 +97,11 @@ During learning, we select a minibatch of these tensors to update the weights of
 
 ## References: 
 ```
-@article{krishnan2015deep,
-  title={Deep Kalman Filters},
+@article{krishnan2016structured,
+  title={Structured Inference Networks for Nonlinear State Space Models},
   author={Krishnan, Rahul G and Shalit, Uri and Sontag, David},
-  journal={arXiv preprint arXiv:1511.05121},
-  year={2015}
+  journal={arXiv preprint arXiv:1609.09869},
+  year={2016}
 }
 ```
+This paper subsumes the work in : https://arxiv.org/abs/1511.05121
