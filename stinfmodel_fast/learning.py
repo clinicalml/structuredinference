@@ -71,7 +71,7 @@ def learn(dkf, dataset, mask, epoch_start=0, epoch_end=1000,
                 dkf._p(('Bnum: %d, Batch Bound: %.4f, |w|: %.4f, |dw|: %.4f, |w_opt|: %.4f')%(bnum,bval,p_norm, g_norm, opt_norm)) 
                 dkf._p(('-veCLL:%.4f, KL:%.4f, anneal:%.4f')%(negCLL, KL, anneal))
         if normalization=='frame':
-            bound /= float(mask.sum())
+            bound /= (float(mask.sum())/replicate_K)
         elif normalization=='sequence':
             bound /= float(N)
         else:
@@ -141,21 +141,34 @@ def _syntheticProc(dkf, dataset, mask, dataset_eval, mask_eval):
         Collect statistics on the synthetic dataset
     """
     allmus, alllogcov = [], []
-    for s in range(10):
-        _,mus, logcov = DKF_evaluate.infer(dkf,dataset,mask)
-        allmus.append(np.copy(mus))
-        alllogcov.append(np.copy(logcov))
-    allmus_v, alllogcov_v = [], []
-    for s in range(10):
-        _,mus, logcov = DKF_evaluate.infer(dkf,dataset_eval,mask)
-        allmus_v.append(np.copy(mus))
-        alllogcov_v.append(np.copy(logcov))
-
-    mu_train = np.concatenate(allmus,axis=2).mean(2,keepdims=True)
-    cov_train= np.exp(np.concatenate(alllogcov,axis=2)).mean(2,keepdims=True)
-    mu_valid = np.concatenate(allmus_v,axis=2).mean(2,keepdims=True)
-    cov_valid= np.exp(np.concatenate(alllogcov_v,axis=2)).mean(2,keepdims=True)
-
+    if dkf.params['dim_stochastic']==1:
+        for s in range(10):
+            _,mus, logcov = DKF_evaluate.infer(dkf,dataset,mask)
+            allmus.append(np.copy(mus))
+            alllogcov.append(np.copy(logcov))
+        allmus_v, alllogcov_v = [], []
+        for s in range(10):
+            _,mus, logcov = DKF_evaluate.infer(dkf,dataset_eval,mask)
+            allmus_v.append(np.copy(mus))
+            alllogcov_v.append(np.copy(logcov))
+        mu_train = np.concatenate(allmus,axis=2).mean(2,keepdims=True)
+        cov_train= np.exp(np.concatenate(alllogcov,axis=2)).mean(2,keepdims=True)
+        mu_valid = np.concatenate(allmus_v,axis=2).mean(2,keepdims=True)
+        cov_valid= np.exp(np.concatenate(alllogcov_v,axis=2)).mean(2,keepdims=True)
+    else:
+        for s in range(10):
+            _,mus, logcov = DKF_evaluate.infer(dkf,dataset,mask)
+            allmus.append(np.copy(mus)[None,:])
+            alllogcov.append(np.copy(logcov)[None,:])
+        allmus_v, alllogcov_v = [], []
+        for s in range(10):
+            _,mus, logcov = DKF_evaluate.infer(dkf,dataset_eval,mask)
+            allmus_v.append(np.copy(mus)[None,:])
+            alllogcov_v.append(np.copy(logcov)[None,:])
+        mu_train = np.concatenate(allmus,axis=0).mean(0)
+        cov_train= np.exp(np.concatenate(alllogcov,axis=0)).mean(0)
+        mu_valid = np.concatenate(allmus_v,axis=0).mean(0)
+        cov_valid= np.exp(np.concatenate(alllogcov_v,axis=0)).mean(0)
     #Extract the learned parameters w/in the generative model
     learned_params = {} 
     for k in dkf.params_synthetic[dkf.params['dataset']]['params']: 

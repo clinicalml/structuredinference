@@ -46,6 +46,7 @@ parser.add_argument('-ar','--anneal_rate', action='store',default = 10., help='N
 parser.add_argument('-repK','--replicate_K', action='store',default = None, help='Number of samples used for the variational bound. Created by replicating the batch',type=int)
 parser.add_argument('-shuf','--shuffle', action='store_true',help='Shuffle during training')
 parser.add_argument('-covexp','--cov_explicit', action='store_true',help='Explicitly parameterize covariance')
+parser.add_argument('-nt','--ntrain', action='store',type=int,default=5000,help='number of training')
 
 #Regularization
 parser.add_argument('-reg','--reg_type', action='store',default = 'l2', help='Type of regularization',type=str,choices=['l1','l2'])
@@ -73,14 +74,13 @@ hmap['nonlinearity']='nl'
 hmap['batch_size']='bs'
 hmap['epochs']='ep'
 hmap['rnn_size']='rs'
-hmap['rnn_dropout']='rd'
 hmap['transition_type']='ttype'
 hmap['emission_type']='etype'
 hmap['use_prev_input']='previnp'
 hmap['anneal_rate']='ar'
 hmap['reg_value']='rv'
 hmap['use_nade']='nade'
-hmap['use_generative_prior']='gp'
+hmap['ntrain']='nt'
 combined   = ''
 for k in hmap:
     if k in params:

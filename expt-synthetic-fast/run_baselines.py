@@ -5,7 +5,7 @@ import numpy as np
 from utils.misc import getPYDIR
 from datasets.synthp import params_synthetic
 
-def runBaselines(DIR):
+def runBaselines(DIR, name):
     DATADIR = getPYDIR()+'/datasets/synthetic'
     assert os.path.exists(DATADIR),DATADIR+' not found. must have this to run baselines'
     if not os.path.exists(DIR):
@@ -13,6 +13,8 @@ def runBaselines(DIR):
 
     for f in glob.glob(DATADIR+'/*.h5'):
         dataset = os.path.basename(f).replace('.h5','')
+        if name not in dataset:#'synthetic' not in dataset or 'synthetic11' in dataset:
+            continue
         print dataset,f
         if os.path.exists(DIR+'/'+dataset+'-baseline.h5'):
             print DIR+'/'+dataset+'-baseline.h5',' found....not rerunning baseline'
@@ -53,4 +55,5 @@ def runBaselines(DIR):
         h5f.close()
         h5fout.close()
 if __name__=='__main__':
-    runBaselines('./baselines')
+    assert len(sys.argv)==2,'expecting sname'
+    runBaselines('./baselines',sys.argv[-1].strip())

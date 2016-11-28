@@ -20,18 +20,22 @@ def runFilter(observations, params, dname, filterType):
     assert filterType=='KF' or filterType=='UKF','Expecting KF/UKF'
     model,mean,var = None,None,None
     X = observations.squeeze()
-    assert len(X.shape)==2,'observations must be nsamples x T'
-    
+    #assert len(X.shape)==2,'observations must be nsamples x T'
     if filterType=='KF':
+        def setupArr(arr):
+            if type(arr) is np.ndarray:
+                return arr
+            else:
+                return np.array([arr])
         model=KalmanFilter(
-                    transition_matrices   = np.array([params[dname]['trans_mult']]),  #multiplier for z_t-1
-                    observation_matrices  = np.array([params[dname]['obs_mult']]), #multiplier for z_t
-                    transition_covariance = np.array([params[dname]['trans_cov']]),  #transition cov
-                    observation_covariance= np.array([params[dname]['obs_cov']]),  #obs cov
-                    transition_offsets    = np.array([params[dname]['trans_drift']]),#additive const. in trans
-                    observation_offsets   = np.array([params[dname]['obs_drift']]),   #additive const. in obs
-                    initial_state_mean    = np.array([params[dname]['init_mu']]),
-                    initial_state_covariance = np.array(params[dname]['init_cov']))
+                    transition_matrices   = setupArr(params[dname]['trans_mult']),  #multiplier for z_t-1
+                    observation_matrices  = setupArr(params[dname]['obs_mult']).T, #multiplier for z_t
+                    transition_covariance = setupArr(params[dname]['trans_cov_full']),  #transition cov
+                    observation_covariance= setupArr(params[dname]['obs_cov_full']),  #obs cov
+                    transition_offsets    = setupArr(params[dname]['trans_drift']),#additive const. in trans
+                    observation_offsets   = setupArr(params[dname]['obs_drift']),   #additive const. in obs
+                    initial_state_mean    = setupArr(params[dname]['init_mu']),
+                    initial_state_covariance = setupArr(params[dname]['init_cov_full']))
     else:
         #In this case, the transition and emission function may have other parameters
         #Create wrapper functions that are instantiated w/ the true parameters
@@ -49,12 +53,22 @@ def runFilter(observations, params, dname, filterType):
                     initial_state_mean    = np.array([params[dname]['init_mu']]),
                     initial_state_covariance = np.array(params[dname]['init_cov']))
     #Run smoothing algorithm with model
-    mus,cov = np.zeros(X.shape),np.zeros(X.shape)
+    dim_stoc = params[dname]['dim_stoc']
+    if dim_stoc>1:
+        mus     = np.zeros((X.shape[0],X.shape[1],dim_stoc))
+        cov     = np.zeros((X.shape[0],X.shape[1],dim_stoc))
+    else:
+        mus     = np.zeros(X.shape)
+        cov     = np.zeros(X.shape)
     ll      = 0
     for n in range(X.shape[0]):
         (smoothed_state_means, smoothed_state_covariances) = model.smooth(X[n,:])
-        mus[n,:] = smoothed_state_means.ravel()
-        cov[n,:] = smoothed_state_covariances.ravel()
+        if dim_stoc>1:
+            mus[n,:] = smoothed_state_means
+            cov[n,:] = np.concatenate([np.diag(k)[None,:] for k in smoothed_state_covariances],axis=0)
+        else:
+            mus[n,:] = smoothed_state_means.ravel()
+            cov[n,:] = smoothed_state_covariances.ravel()
         if filterType=='KF':
             ll      += model.loglikelihood(X[n,:])
     return mus,cov,ll

@@ -9,6 +9,8 @@ from utils.misc import removeIfExists,createIfAbsent,mapPrint,saveHDF5,displayTi
 if params['dataset']=='':
     params['dataset']='synthetic9'
 dataset = loadDataset(params['dataset'])
+
+dataset['train']  = dataset['train'][:params['ntrain']]
 params['savedir']+='-'+params['dataset']
 createIfAbsent(params['savedir'])
 
@@ -16,7 +18,6 @@ createIfAbsent(params['savedir'])
 for k in ['dim_observations','dim_actions','data_type', 'dim_stochastic']:
     params[k] = dataset[k]
 mapPrint('Options: ',params)
-
 
 #Setup VAE Model (or reload from existing savefile)
 start_time = time.time()

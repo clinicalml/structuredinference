@@ -21,7 +21,7 @@ from datasets.synthpTheano import updateParamsSynthetic
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     
 """
-                                                DEEP KALMAN FILTER
+                                                DEEP MARKOV MODEL [DEEP KALMAN FILTER]
 """
 class DKF(BaseModel, object):
     def __init__(self, params, paramFile=None, reloadFile=None):
