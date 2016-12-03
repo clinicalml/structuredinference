@@ -97,11 +97,11 @@ During learning, we select a minibatch of these tensors to update the weights of
 
 ## References: 
 ```
-@article{krishnan2016structured,
+@inproceedings{krishnan2016structured,
   title={Structured Inference Networks for Nonlinear State Space Models},
   author={Krishnan, Rahul G and Shalit, Uri and Sontag, David},
-  journal={arXiv preprint arXiv:1609.09869},
-  year={2016}
+  booktitle={AAAI},
+  year={2017}
 }
 ```
-This paper subsumes the work in : https://arxiv.org/abs/1511.05121
+This paper subsumes the work in : [Deep Kalman Filters] (https://arxiv.org/abs/1511.05121)
