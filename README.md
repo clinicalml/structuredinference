@@ -1,6 +1,7 @@
 # structuredInf
 Code to fully reproduce benchmark results (and to extend for your own purposes) from the paper:
-<p align="center">Krishnan, Shalit, Sontag. <a href="https://arxiv.org/abs/1609.09869">Structured Inference Networks for Nonlinear State Space Models</a>, arXiv:1609.09869, 2016.</p>
+<p align="center">Krishnan, Shalit, Sontag. <a href="https://arxiv.org/abs/1609.09869">Structured Inference Networks for Nonlinear State Space Models</a>, AAAI 2017.</p>
+See <a href="https://github.com/clinicalml/dmm"> for a simplified and easier to use version of the code.
 
 ## Goal
 The goal of this package is to provide a black box inference algorithm for learning models of time-series data. 
